@@ -9,6 +9,8 @@ from .views import (
     WarehouseProfileView,
     WarehouseReturnAcceptView,
     WarehouseReturnRejectView,
+    WarehouseReturnAssignView,
+    WarehouseReturnReceiveView,
     WarehouseCourierPartnersView,
     WarehouseDeliveryEmployeesView,
     WarehouseOrderDispatchView,
@@ -30,5 +32,7 @@ urlpatterns = [
     # Accept / Reject a return request (status must be 'Requested')
     path('returns/<str:return_id>/accept/', WarehouseReturnAcceptView.as_view(), name='return-accept'),
     path('returns/<str:return_id>/reject/', WarehouseReturnRejectView.as_view(), name='return-reject'),
+    path('returns/<str:return_id>/assign/', WarehouseReturnAssignView.as_view(), name='return-assign'),
+    path('returns/<str:return_id>/receive/', WarehouseReturnReceiveView.as_view(), name='return-receive'),
     path('profile/', WarehouseProfileView.as_view(), name='profile'),
 ]

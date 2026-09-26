@@ -13,6 +13,7 @@ from .serializers import (
     WarehouseOrderDetailSerializer,
     WarehouseDeliverySerializer,
     WarehouseReturnSerializer,
+    WarehouseReturnAssignSerializer,
     WarehouseProductDetailSerializer,
     WarehouseProductUpdateSerializer,
     WarehouseOrderDispatchSerializer,
@@ -259,16 +260,17 @@ class WarehouseProfileView(APIView):
 class WarehouseReturnAcceptView(APIView):
     """
     PATCH /api/warehouse/returns/<return_id>/accept/
-    Accepts a return request. Only allowed when current status is 'Requested'.
-    Updates return_status to 'Accepted' and computes refund_amount.
-    All validation and DB update handled by Django service layer.
+    Accepts/Approves a return request. Only allowed when current status is 'Requested'.
+    Updates return_status to 'Approved' and computes refund_amount.
+    All validation and DB update handled by Django service layer with warehouse authorization.
     """
     permission_classes = [AllowAny]
-    authentication_classes = []
 
     def patch(self, request, return_id):
         try:
-            updated_return = WarehouseService.accept_return(return_id)
+            updated_return = WarehouseService.accept_return(return_id, manager_user=request.user)
+        except PermissionError as p_err:
+            return Response({'detail': str(p_err)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as exc:
             err_msg = str(exc)
             if 'not found' in err_msg.lower():
@@ -277,9 +279,13 @@ class WarehouseReturnAcceptView(APIView):
 
         serializer = WarehouseReturnSerializer(updated_return)
         return Response({
-            'message': 'Return accepted successfully.',
+            'message': 'Return approved successfully.',
             'return': serializer.data,
         }, status=status.HTTP_200_OK)
+
+    def post(self, request, return_id):
+        return self.patch(request, return_id)
+
 
 
 class WarehouseReturnRejectView(APIView):
@@ -287,14 +293,15 @@ class WarehouseReturnRejectView(APIView):
     PATCH /api/warehouse/returns/<return_id>/reject/
     Rejects a return request. Only allowed when current status is 'Requested'.
     Updates return_status to 'Rejected'.
-    All validation and DB update handled by Django service layer.
+    All validation and DB update handled by Django service layer with warehouse authorization.
     """
     permission_classes = [AllowAny]
-    authentication_classes = []
 
     def patch(self, request, return_id):
         try:
-            updated_return = WarehouseService.reject_return(return_id)
+            updated_return = WarehouseService.reject_return(return_id, manager_user=request.user)
+        except PermissionError as p_err:
+            return Response({'detail': str(p_err)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as exc:
             err_msg = str(exc)
             if 'not found' in err_msg.lower():
@@ -306,6 +313,81 @@ class WarehouseReturnRejectView(APIView):
             'message': 'Return rejected successfully.',
             'return': serializer.data,
         }, status=status.HTTP_200_OK)
+
+    def post(self, request, return_id):
+        return self.patch(request, return_id)
+
+
+
+class WarehouseReturnAssignView(APIView):
+    """
+    POST /api/warehouse/returns/<return_id>/assign/
+    Assigns an approved return to a real active delivery partner employee.
+    Enforces warehouse permission, verifies courier company and employee status.
+    Sets return_status to 'Pickup Assigned' and creates corresponding Delivery record.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request, return_id):
+        serializer = WarehouseReturnAssignSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+        data = serializer.validated_data
+        try:
+            updated_return = WarehouseService.assign_return_pickup(
+                return_id=return_id,
+                delivery_partner=data['delivery_partner'],
+                assigned_employee_id=data['assigned_employee_id'],
+                manager_user=request.user
+            )
+        except PermissionError as p_err:
+            return Response({'detail': str(p_err)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as exc:
+            err_msg = str(exc)
+            if 'not found' in err_msg.lower():
+                return Response({'detail': err_msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': err_msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer_ret = WarehouseReturnSerializer(updated_return)
+        return Response({
+            'message': f"Return pickup '{return_id}' assigned successfully.",
+            'return': serializer_ret.data,
+        }, status=status.HTTP_200_OK)
+
+
+class WarehouseReturnReceiveView(APIView):
+    """
+    PATCH /api/warehouse/returns/<return_id>/receive/
+    Confirms physical receipt of returned merchandise at the warehouse.
+    Only allowed after merchandise has been picked up by the delivery partner.
+    Sets return_status to 'Completed'.
+    """
+    permission_classes = [AllowAny]
+
+    def patch(self, request, return_id):
+        try:
+            updated_return = WarehouseService.receive_return(
+                return_id=return_id,
+                manager_user=request.user
+            )
+        except PermissionError as p_err:
+            return Response({'detail': str(p_err)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as exc:
+            err_msg = str(exc)
+            if 'not found' in err_msg.lower():
+                return Response({'detail': err_msg}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': err_msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer_ret = WarehouseReturnSerializer(updated_return)
+        return Response({
+            'message': f"Return '{return_id}' confirmed received at warehouse and marked completed.",
+            'return': serializer_ret.data,
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request, return_id):
+        return self.patch(request, return_id)
+
 
 
 class WarehouseCourierPartnersView(APIView):

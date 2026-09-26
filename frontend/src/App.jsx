@@ -7,7 +7,7 @@ import Signup from './pages/Signup';
 import CustomerPortal from './pages/customer/CustomerPortal';
 import AdminPortal from './pages/admin/AdminPortal';
 import WarehousePortal from './pages/warehouse/WarehousePortal';
-import DeliveryPlaceholder from './pages/placeholders/DeliveryPlaceholder';
+import DeliveryPortal from './pages/delivery/DeliveryPortal';
 
 function ProtectedRoute({ children, allowedRole }) {
   const { isAuthenticated, role } = useAuth();
@@ -85,10 +85,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/delivery"
+        path="/delivery/*"
         element={
           <ProtectedRoute allowedRole="DELIVERY_PARTNER">
-            <DeliveryPlaceholder />
+            <DeliveryPortal />
           </ProtectedRoute>
         }
       />
