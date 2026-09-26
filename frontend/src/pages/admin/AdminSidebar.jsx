@@ -23,7 +23,7 @@ export const ADMIN_NAV_ITEMS = [
   { id: 'deliveries', label: 'Deliveries', icon: Truck },
   { id: 'returns', label: 'Returns', icon: RotateCcw },
   { id: 'customers', label: 'Customers', icon: UserCheck },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'analytics', label: 'Admin Analysis', icon: BarChart3 },
 ];
 
 export default function AdminSidebar({ activeSection, onSelectSection, isMobileOpen, onCloseMobile }) {

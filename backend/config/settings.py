@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'warehouse.apps.WarehouseConfig',
     'orders.apps.OrdersConfig',
     'delivery.apps.DeliveryConfig',
+    'demand_prediction.apps.DemandPredictionConfig',
 ]
 
 MIDDLEWARE = [

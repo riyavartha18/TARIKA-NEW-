@@ -1171,5 +1171,37 @@ export async function getAdminOrderDetail(token, orderId) {
   }
 }
 
+/* ==========================================================================
+   DATA MINING & DEMAND PREDICTION API HELPERS
+   ========================================================================== */
+
+/**
+ * Fetch Demand Prediction analytics & Decision Tree results.
+ */
+export async function getDemandPredictionAnalytics(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.demand_level && params.demand_level !== 'ALL') query.append('demand_level', params.demand_level);
+    if (params.category && params.category !== 'ALL') query.append('category', params.category);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/demand-prediction/analytics/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || data.detail || 'Failed to fetch demand prediction analytics.' };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching demand prediction analytics.' };
+  }
+}
+
+
 
 
