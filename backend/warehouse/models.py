@@ -62,6 +62,15 @@ class Delivery(models.Model):
         related_name='deliveries'
     )
     delivery_partner = models.CharField(max_length=255, blank=True, null=True)
+    assigned_employee = models.ForeignKey(
+        Employee,
+        to_field='employee_id',
+        db_column='assigned_employee_id',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='assigned_deliveries'
+    )
     dispatch_date = models.CharField(max_length=100, blank=True, null=True)
     expected_delivery_date = models.CharField(max_length=100, blank=True, null=True)
     actual_delivery_date = models.CharField(max_length=100, blank=True, null=True)

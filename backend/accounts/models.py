@@ -75,6 +75,7 @@ class Employee(models.Model):
         null=True,
         related_name='employees'
     )
+    courier_company = models.CharField(max_length=255, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

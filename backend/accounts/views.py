@@ -108,6 +108,7 @@ class MeView(APIView):
                     "employee_id": getattr(employee, 'employee_id', None),
                     "full_name": getattr(employee, 'full_name', None),
                     "phone": getattr(employee, 'phone', None),
+                    "courier_company": getattr(employee, 'courier_company', None),
                     "created_at": getattr(employee, 'created_at', None),
                 })
 

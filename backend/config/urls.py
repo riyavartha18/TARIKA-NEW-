@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/wishlist/', include('cart.urls_wishlist')),
     path('api/cart/', include('cart.urls')),
     path('api/bag/', include(('cart.urls', 'bag'), namespace='bag')),
+    path('api/delivery/', include('delivery.urls')),
 ]
 
 # Reload URLconf: registered warehouse app routes

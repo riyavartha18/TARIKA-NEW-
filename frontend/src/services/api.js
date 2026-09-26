@@ -742,3 +742,115 @@ export async function clearBag(token) {
     return { success: false, error: 'Network error clearing bag' };
   }
 }
+
+/* ==========================================================================
+   DELIVERY PARTNER API HELPERS
+   ========================================================================== */
+
+/**
+ * Fetch dashboard metrics for authenticated Delivery Partner.
+ */
+export async function getDeliveryPartnerDashboard(token) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/delivery/dashboard/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch delivery dashboard metrics' };
+    }
+    return { success: true, employee: data.employee, metrics: data.metrics };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching delivery dashboard' };
+  }
+}
+
+/**
+ * Fetch ONLY deliveries assigned to the authenticated Delivery Partner.
+ */
+export async function getDeliveryPartnerMyDeliveries(token, params = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
+    if (params.search) query.append('search', params.search);
+    if (params.page) query.append('page', params.page);
+    if (params.page_size) query.append('page_size', params.page_size);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/delivery/my-deliveries/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch assigned deliveries' };
+    }
+
+    return {
+      success: true,
+      deliveries: Array.isArray(data) ? data : (data.results || []),
+      count: data.count || (Array.isArray(data) ? data.length : 0),
+      totalPages: data.total_pages || 1,
+      currentPage: data.current_page || 1,
+      hasNext: Boolean(data.next),
+      hasPrevious: Boolean(data.previous),
+    };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching assigned deliveries' };
+  }
+}
+
+/**
+ * Fetch details of a single assigned delivery.
+ */
+export async function getDeliveryPartnerDetail(token, deliveryId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/delivery/deliveries/${deliveryId}/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch delivery details' };
+    }
+    return { success: true, delivery: data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching delivery detail' };
+  }
+}
+
+/**
+ * Update status of an assigned delivery (Confirm Pickup, Start Delivery, Mark Delivered, Exception).
+ */
+export async function updateDeliveryPartnerStatus(token, deliveryId, status, reason = '') {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/delivery/deliveries/${deliveryId}/status/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status, reason }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || data.status?.[0] || 'Failed to update status' };
+    }
+    return { success: true, delivery: data.delivery, message: data.message };
+  } catch (err) {
+    return { success: false, error: 'Network error updating delivery status' };
+  }
+}
+
