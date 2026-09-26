@@ -26,6 +26,7 @@ urlpatterns = [
     path('api/cart/', include('cart.urls')),
     path('api/bag/', include(('cart.urls', 'bag'), namespace='bag')),
     path('api/orders/', include(('orders.urls', 'orders'), namespace='orders')),
+    path('api/admin/', include(('admin.urls', 'admin_module'), namespace='admin_module')),
 ]
 
 # Reload URLconf: registered warehouse app routes

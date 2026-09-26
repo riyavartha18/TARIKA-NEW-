@@ -936,4 +936,240 @@ export async function getProductReviews(productId) {
   }
 }
 
+/* ==========================================================================
+   ADMIN PORTAL API HELPERS
+   ========================================================================== */
+
+/**
+ * Fetch executive dashboard statistics and live system overview.
+ */
+export async function getAdminDashboardStats(token) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/dashboard/`, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to load dashboard metrics.' };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching admin dashboard stats.' };
+  }
+}
+
+/**
+ * Fetch system staff members (Warehouse Managers, Delivery Partners) with filters.
+ */
+export async function getStaffList(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.role && params.role !== 'ALL') query.append('role', params.role);
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/staff/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch staff list.' };
+    }
+    return {
+      success: true,
+      summary: data.summary || {},
+      employees: data.employees || [],
+      warehouses: data.warehouses || [],
+    };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching staff list.' };
+  }
+}
+
+/**
+ * Create a new staff member (Warehouse Manager or Delivery Partner).
+ */
+export async function createStaffMember(token, payload) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/staff/create/`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const errorMsg = data.errors
+        ? Object.entries(data.errors).map(([f, m]) => `${f}: ${m}`).join(', ')
+        : (data.detail || (typeof data === 'object' && Object.values(data)[0] && (Array.isArray(Object.values(data)[0]) ? Object.values(data)[0][0] : Object.values(data)[0])) || 'Failed to create staff member.');
+      return { success: false, error: errorMsg };
+    }
+    return { success: true, message: data.message, employee: data.employee };
+  } catch (err) {
+    return { success: false, error: 'Network error creating staff member.' };
+  }
+}
+
+/**
+ * Toggle staff active status (activate / deactivate).
+ */
+export async function toggleStaffStatus(token, employeeId) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/staff/${employeeId}/toggle-status/`, {
+      method: 'POST',
+      headers,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to toggle staff status.' };
+    }
+    return { success: true, message: data.message, employee: data.employee };
+  } catch (err) {
+    return { success: false, error: 'Network error toggling staff status.' };
+  }
+}
+
+/**
+ * Fetch network warehouses list with stock utilization.
+ */
+export async function getAdminWarehouseList(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/warehouses/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch warehouse list.' };
+    }
+    return {
+      success: true,
+      summary: data.summary || {},
+      warehouses: data.warehouses || [],
+    };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching warehouse list.' };
+  }
+}
+
+/**
+ * Fetch admin catalog products list with filters.
+ */
+export async function getAdminProductList(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'ALL') query.append('category', params.category);
+    if (params.stock_status && params.stock_status !== 'ALL') query.append('stock_status', params.stock_status);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/products/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch admin product catalog.' };
+    }
+    return {
+      success: true,
+      metrics: data.metrics || {},
+      categories: data.categories || [],
+      products: data.products || [],
+    };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching admin products.' };
+  }
+}
+
+/**
+ * Create a new product in the catalog with initial stock allocation.
+ */
+export async function createAdminProduct(token, payload) {
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/products/create/`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const errorMsg = data.errors
+        ? Object.entries(data.errors).map(([f, m]) => `${f}: ${m}`).join(', ')
+        : (data.detail || 'Failed to create product.');
+      return { success: false, error: errorMsg };
+    }
+    return { success: true, message: data.message, product: data.product };
+  } catch (err) {
+    return { success: false, error: 'Network error creating product.' };
+  }
+}
+
+/**
+ * Fetch all system orders for admin oversight.
+ */
+export async function getAdminOrders(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/orders/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch admin orders.' };
+    }
+    return {
+      success: true,
+      metrics: data.metrics || {},
+      orders: data.orders || [],
+    };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching admin orders.' };
+  }
+}
+
+/**
+ * Fetch detailed order information for admin.
+ */
+export async function getAdminOrderDetail(token, orderId) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/admin/orders/${orderId}/`, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch order detail.' };
+    }
+    return { success: true, order: data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching admin order detail.' };
+  }
+}
+
+
 
