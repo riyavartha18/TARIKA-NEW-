@@ -8,6 +8,7 @@ from accounts.models import Customer, Warehouse
 from catalog.models import Product, Inventory, OrderItem
 from cart.models import CartItem
 from cart.services import CartService, CustomerResolver
+from warehouse.models import Return, Delivery
 from .models import Order, Payment
 
 
@@ -199,3 +200,83 @@ class OrderQueryService:
             raise PermissionDenied("You do not have permission to view this order.")
 
         return order
+
+
+class CustomerReturnService:
+    """
+    Handles customer return requests with strict validation:
+    - Order belongs to the authenticated customer.
+    - Order is in delivered status.
+    - Selected order item exists in order.
+    - Prevents duplicate active returns for the same item.
+    - Creates canonical Return record with status 'Requested'.
+    """
+    @classmethod
+    def request_return(cls, customer, order_id, order_item_id, return_reason, condition_on_return=None):
+        order = OrderQueryService.get_customer_order(customer, order_id)
+
+        # Ensure order is delivered
+        order_st = (order.order_status or '').strip().lower()
+        forward_delivery = Delivery.objects.filter(order_id=order.order_id).exclude(delivery_type__iexact='RETURN').first()
+        delivery_st = (forward_delivery.delivery_status or '').strip().lower() if forward_delivery else ''
+
+        if order_st != 'delivered' and delivery_st != 'delivered':
+            raise ValidationError("Returns can only be requested for orders that have been successfully delivered.")
+
+        # Ensure order item belongs to this order
+        try:
+            order_item = OrderItem.objects.select_related('product').get(
+                order_item_id=order_item_id,
+                order_id=order.order_id
+            )
+        except OrderItem.DoesNotExist:
+            raise ValidationError("Selected item does not belong to this order.")
+
+        # Check existing return
+        existing_return = Return.objects.filter(order_item_id=order_item.order_item_id).first()
+        if existing_return:
+            cur_st = (existing_return.return_status or '').strip().lower()
+            if cur_st not in ['rejected', 'failed']:
+                raise ValidationError(
+                    f"A return request for this item is already active (Current status: {existing_return.return_status})."
+                )
+
+        # Calculate refund amount
+        refund_amount = order_item.subtotal
+        if refund_amount is None or refund_amount == 0:
+            unit_price = getattr(order_item, 'unit_price', 0) or 0
+            qty = getattr(order_item, 'quantity', 1) or 1
+            refund_amount = float(unit_price) * int(qty)
+
+        reason_clean = (return_reason or '').strip()
+        if not reason_clean:
+            raise ValidationError("Please provide a reason for the return.")
+
+        cond_clean = (condition_on_return or '').strip() or 'Unused, original packaging'
+
+        return_id = f"RET-{uuid.uuid4().hex[:8].upper()}"
+
+        if existing_return and (existing_return.return_status or '').strip().lower() in ['rejected', 'failed']:
+            # Re-activate return
+            existing_return.return_reason = reason_clean
+            existing_return.condition_on_return = cond_clean
+            existing_return.return_status = 'Requested'
+            existing_return.return_date = date.today().isoformat()
+            existing_return.refund_amount = float(refund_amount)
+            existing_return.assigned_employee_id = None
+            existing_return.delivery_partner = None
+            existing_return.pickup_date = None
+            existing_return.save()
+            return existing_return
+
+        new_return = Return.objects.create(
+            return_id=return_id,
+            order_item=order_item,
+            customer=customer,
+            return_reason=reason_clean,
+            return_date=date.today().isoformat(),
+            return_status='Requested',
+            refund_amount=float(refund_amount),
+            condition_on_return=cond_clean
+        )
+        return new_return

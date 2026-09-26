@@ -44,6 +44,23 @@ class CheckoutRequestSerializer(serializers.Serializer):
         )
 
 
+class OrderReturnRequestSerializer(serializers.Serializer):
+    order_item_id = serializers.CharField(
+        required=True,
+        error_messages={'blank': 'Please specify an item to return.'}
+    )
+    return_reason = serializers.CharField(
+        required=True,
+        max_length=255,
+        error_messages={'blank': 'Please select a reason for returning.'}
+    )
+    condition_on_return = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default='Unused, original packaging'
+    )
+
+
 class OrderItemDetailSerializer(serializers.ModelSerializer):
     """
     Serializes an order item for order detail, my orders, and confirmation views.
@@ -99,6 +116,9 @@ class OrderItemDetailSerializer(serializers.ModelSerializer):
             'return_date': ret.return_date,
             'refund_amount': ret.refund_amount,
             'condition_on_return': ret.condition_on_return,
+            'assigned_employee_id': ret.assigned_employee_id,
+            'delivery_partner': ret.delivery_partner,
+            'pickup_date': ret.pickup_date,
         }
 
     def get_customer_review(self, obj):
@@ -181,11 +201,12 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         return obj.warehouse.warehouse_name if obj.warehouse else ''
 
     def get_delivery(self, obj):
-        delivery = Delivery.objects.filter(order_id=obj.order_id).first()
+        delivery = Delivery.objects.filter(order_id=obj.order_id).exclude(delivery_type__iexact='RETURN').first()
         if not delivery:
             return None
         return {
             'delivery_id': delivery.delivery_id,
+            'delivery_type': delivery.delivery_type or 'FORWARD',
             'delivery_status': delivery.delivery_status,
             'delivery_partner': delivery.delivery_partner,
             'dispatch_date': delivery.dispatch_date,
@@ -193,3 +214,4 @@ class OrderDetailSerializer(serializers.ModelSerializer):
             'actual_delivery_date': delivery.actual_delivery_date,
             'failure_reason': delivery.failure_reason,
         }
+

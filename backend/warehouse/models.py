@@ -76,6 +76,16 @@ class Delivery(models.Model):
     actual_delivery_date = models.CharField(max_length=100, blank=True, null=True)
     delivery_status = models.CharField(max_length=100, blank=True, null=True)
     failure_reason = models.TextField(blank=True, null=True)
+    delivery_type = models.CharField(max_length=50, blank=True, null=True, default='FORWARD')
+    return_record = models.ForeignKey(
+        'Return',
+        to_field='return_id',
+        db_column='return_id',
+        on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True,
+        related_name='deliveries'
+    )
 
     class Meta:
         db_table = 'deliveries'
@@ -111,6 +121,17 @@ class Return(models.Model):
     return_status = models.CharField(max_length=100, blank=True, null=True)
     refund_amount = models.FloatField(blank=True, null=True)
     condition_on_return = models.TextField(blank=True, null=True)
+    assigned_employee = models.ForeignKey(
+        Employee,
+        to_field='employee_id',
+        db_column='assigned_employee_id',
+        on_delete=models.DO_NOTHING,
+        blank=True,
+        null=True,
+        related_name='assigned_returns'
+    )
+    delivery_partner = models.CharField(max_length=100, blank=True, null=True)
+    pickup_date = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         db_table = 'returns'

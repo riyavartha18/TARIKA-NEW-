@@ -10,6 +10,7 @@ from delivery.serializers import (
     DeliveryStatusUpdateSerializer,
     DeliveryPartnerListSerializer,
     DeliveryEmployeeSerializer,
+    ReturnPickupStatusUpdateSerializer,
 )
 from delivery.views import (
     DeliveryPartnerMyDeliveriesView,
@@ -17,6 +18,9 @@ from delivery.views import (
     DeliveryPartnerStatusUpdateView,
     DeliveryPartnerDashboardView,
     DeliveryPartnersListView,
+    DeliveryPartnerReturnPickupsView,
+    DeliveryPartnerReturnPickupDetailView,
+    DeliveryPartnerReturnPickupStatusView,
 )
 from delivery.services import DeliveryPartnerService
 
@@ -49,6 +53,16 @@ class DeliveryURLTests(SimpleTestCase):
         self.assertEqual(url, '/api/delivery/partners/')
         self.assertEqual(resolve(url).func.view_class, DeliveryPartnersListView)
 
+    def test_return_pickups_url_resolves(self):
+        url = reverse('delivery:return-pickups')
+        self.assertEqual(url, '/api/delivery/return-pickups/')
+        self.assertEqual(resolve(url).func.view_class, DeliveryPartnerReturnPickupsView)
+
+    def test_return_pickup_status_url_resolves(self):
+        url = reverse('delivery:return-pickup-status', kwargs={'return_id': 'RET-101'})
+        self.assertEqual(url, '/api/delivery/return-pickups/RET-101/status/')
+        self.assertEqual(resolve(url).func.view_class, DeliveryPartnerReturnPickupStatusView)
+
 
 class DeliveryStatusSerializerTests(SimpleTestCase):
     """Test status serializer validation for delivery lifecycle."""
@@ -79,6 +93,16 @@ class DeliveryStatusSerializerTests(SimpleTestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn('status', serializer.errors)
 
+    def test_return_pickup_allowed_status(self):
+        serializer = ReturnPickupStatusUpdateSerializer(data={'status': 'Picked Up'})
+        self.assertTrue(serializer.is_valid())
+        self.assertEqual(serializer.validated_data['status'], 'Picked Up')
+
+    def test_return_pickup_invalid_status(self):
+        serializer = ReturnPickupStatusUpdateSerializer(data={'status': 'In Transit'})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('status', serializer.errors)
+
 
 class DeliveryViewPermissionTests(SimpleTestCase):
     """Test RBAC enforcement on Delivery Partner views."""
@@ -89,6 +113,14 @@ class DeliveryViewPermissionTests(SimpleTestCase):
     def test_my_deliveries_forbidden_for_customer(self):
         view = DeliveryPartnerMyDeliveriesView.as_view()
         request = self.factory.get('/api/delivery/my-deliveries/')
+        user = AuthenticatedUser('uid-cust', 'cust@tarika.com', Role.CUSTOMER)
+        force_authenticate(request, user=user)
+        response = view(request)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_return_pickups_forbidden_for_customer(self):
+        view = DeliveryPartnerReturnPickupsView.as_view()
+        request = self.factory.get('/api/delivery/return-pickups/')
         user = AuthenticatedUser('uid-cust', 'cust@tarika.com', Role.CUSTOMER)
         force_authenticate(request, user=user)
         response = view(request)

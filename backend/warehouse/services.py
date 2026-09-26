@@ -247,10 +247,30 @@ class WarehouseService:
         return qs.order_by('is_requested', '-return_date')
 
     @staticmethod
-    def accept_return(return_id):
+    def _check_return_warehouse_auth(ret, manager_user):
         """
-        Accept a return request. Only allowed when return_status is 'requested'.
-        Updates return_status to 'Accepted'. Computes refund_amount from order_item
+        Validates that the authenticated Warehouse Manager is authorized to manage this return.
+        Admins have global access.
+        """
+        if manager_user and getattr(manager_user, 'is_authenticated', False):
+            user_role = getattr(manager_user, 'role', None)
+            user_wh = getattr(manager_user, 'warehouse_id', None)
+            if user_role == 'WAREHOUSE_MANAGER' and user_wh:
+                order = None
+                if ret.order_item and ret.order_item.order_id:
+                    order = Order.objects.filter(order_id=ret.order_item.order_id).first()
+                if order and order.warehouse_id:
+                    if str(order.warehouse_id).strip() != str(user_wh).strip():
+                        raise PermissionError(
+                            f"Permission denied: You are assigned to warehouse '{user_wh}', "
+                            f"but return '{ret.return_id}' belongs to warehouse '{order.warehouse_id}'."
+                        )
+
+    @staticmethod
+    def accept_return(return_id, manager_user=None):
+        """
+        Approve/Accept a return request. Only allowed when return_status is 'requested'.
+        Updates return_status to 'Approved'. Computes refund_amount from order_item
         if not already set. Persists changes to the database.
         """
         try:
@@ -260,13 +280,15 @@ class WarehouseService:
         except Return.DoesNotExist:
             raise Return.DoesNotExist(f"Return '{return_id}' not found.")
 
-        if (ret.return_status or '').strip().lower() != 'requested':
+        WarehouseService._check_return_warehouse_auth(ret, manager_user)
+
+        if (ret.return_status or '').strip().lower() not in ['requested']:
             raise ValueError(
-                f"Cannot accept return '{return_id}': current status is '{ret.return_status}'. "
-                "Only 'Requested' returns can be accepted."
+                f"Cannot approve return '{return_id}': current status is '{ret.return_status}'. "
+                "Only 'Requested' returns can be approved."
             )
 
-        ret.return_status = 'Accepted'
+        ret.return_status = 'Approved'
 
         # Compute refund_amount from order_item if not already set
         if ret.refund_amount is None or ret.refund_amount == 0:
@@ -283,11 +305,11 @@ class WarehouseService:
         ret.save()
 
         return Return.objects.select_related(
-            'order_item__product', 'customer'
+            'order_item__product', 'customer', 'assigned_employee'
         ).get(return_id=return_id)
 
     @staticmethod
-    def reject_return(return_id):
+    def reject_return(return_id, manager_user=None):
         """
         Reject a return request. Only allowed when return_status is 'requested'.
         Updates return_status to 'Rejected' and persists to the database.
@@ -299,7 +321,9 @@ class WarehouseService:
         except Return.DoesNotExist:
             raise Return.DoesNotExist(f"Return '{return_id}' not found.")
 
-        if (ret.return_status or '').strip().lower() != 'requested':
+        WarehouseService._check_return_warehouse_auth(ret, manager_user)
+
+        if (ret.return_status or '').strip().lower() not in ['requested']:
             raise ValueError(
                 f"Cannot reject return '{return_id}': current status is '{ret.return_status}'. "
                 "Only 'Requested' returns can be rejected."
@@ -309,22 +333,149 @@ class WarehouseService:
         ret.save()
 
         return Return.objects.select_related(
-            'order_item__product', 'customer'
+            'order_item__product', 'customer', 'assigned_employee'
+        ).get(return_id=return_id)
+
+    @staticmethod
+    def assign_return_pickup(return_id, delivery_partner, assigned_employee_id, manager_user=None):
+        """
+        Assigns an approved return to a real active delivery partner employee.
+        - Validates return exists and belongs to manager's warehouse.
+        - Validates return status is 'Approved' (or 'Accepted').
+        - Validates courier company and employee match.
+        - Sets return status to 'Pickup Assigned'.
+        - Creates/updates Delivery record with delivery_type='RETURN' and status='Assigned'.
+        """
+        import uuid
+        from accounts.models import Employee
+
+        try:
+            ret = Return.objects.select_related('order_item__product', 'customer').get(return_id=return_id)
+        except Return.DoesNotExist:
+            raise Return.DoesNotExist(f"Return '{return_id}' not found.")
+
+        WarehouseService._check_return_warehouse_auth(ret, manager_user)
+
+        cur_status = (ret.return_status or '').strip().lower()
+        if cur_status not in ['approved', 'accepted']:
+            raise ValueError(
+                f"Cannot assign pickup for return '{return_id}'. Current status is '{ret.return_status}'. "
+                "Only approved returns can be assigned for pickup."
+            )
+
+        partner_clean = (delivery_partner or '').strip()
+        if not partner_clean:
+            raise ValueError("Courier company name is required.")
+
+        try:
+            emp = Employee.objects.get(
+                employee_id=assigned_employee_id,
+                role='DELIVERY_PARTNER',
+                is_active=True
+            )
+        except Employee.DoesNotExist:
+            raise ValueError(
+                f"Employee ID {assigned_employee_id} does not exist, is inactive, "
+                "or does not possess the 'DELIVERY_PARTNER' role."
+            )
+
+        if (emp.courier_company or '').strip().lower() != partner_clean.lower():
+            raise ValueError(
+                f"Employee '{emp.full_name}' belongs to courier company '{emp.courier_company}', "
+                f"which does not match the selected company '{delivery_partner}'."
+            )
+
+        today_str = datetime.date.today().isoformat()
+        ret.return_status = 'Pickup Assigned'
+        ret.delivery_partner = partner_clean
+        ret.assigned_employee = emp
+        ret.pickup_date = today_str
+        ret.save()
+
+        # Create or update corresponding Delivery record for pickup
+        order = None
+        if ret.order_item and ret.order_item.order_id:
+            order = Order.objects.filter(order_id=ret.order_item.order_id).first()
+
+        del_rec = Delivery.objects.filter(return_record=ret).first()
+        if not del_rec:
+            del_rec = Delivery(
+                delivery_id=f"DEL-RET-{uuid.uuid4().hex[:8].upper()}",
+                order=order,
+                warehouse_id=order.warehouse_id if order else getattr(manager_user, 'warehouse_id', None),
+                delivery_type='RETURN',
+                return_record=ret,
+            )
+        del_rec.delivery_partner = partner_clean
+        del_rec.assigned_employee = emp
+        del_rec.delivery_status = 'Assigned'
+        del_rec.dispatch_date = today_str
+        del_rec.save()
+
+        return Return.objects.select_related(
+            'order_item__product', 'customer', 'assigned_employee'
+        ).get(return_id=return_id)
+
+    @staticmethod
+    def receive_return(return_id, manager_user=None):
+        """
+        Confirms receipt of returned merchandise at the warehouse.
+        Only allowed when return has been picked up by the delivery partner.
+        Sets return_status to 'Completed' and marks delivery record as 'Delivered'.
+        """
+        try:
+            ret = Return.objects.select_related('order_item__product', 'customer').get(return_id=return_id)
+        except Return.DoesNotExist:
+            raise Return.DoesNotExist(f"Return '{return_id}' not found.")
+
+        WarehouseService._check_return_warehouse_auth(ret, manager_user)
+
+        cur_status = (ret.return_status or '').strip().lower()
+        if cur_status not in ['picked up', 'received at warehouse']:
+            raise ValueError(
+                f"Cannot confirm receipt for return '{return_id}'. Current status is '{ret.return_status}'. "
+                "Merchandise must be picked up before confirming warehouse receipt."
+            )
+
+        today_str = datetime.date.today().isoformat()
+        ret.return_status = 'Completed'
+        ret.save()
+
+        del_rec = Delivery.objects.filter(return_record=ret).first()
+        if del_rec:
+            del_rec.delivery_status = 'Delivered'
+            del_rec.actual_delivery_date = today_str
+            del_rec.save()
+
+        return Return.objects.select_related(
+            'order_item__product', 'customer', 'assigned_employee'
         ).get(return_id=return_id)
 
     @staticmethod
     def get_courier_partners():
         """
-        Returns a sorted list of unique courier company names from existing delivery records.
+        Returns a sorted list of unique courier company names from existing delivery records
+        and registered active delivery partner employees.
         """
-        partners = (
+        from accounts.models import Employee, EmployeeRole
+
+        delivery_partners = set(
             Delivery.objects
             .exclude(delivery_partner__isnull=True)
             .exclude(delivery_partner__exact='')
             .values_list('delivery_partner', flat=True)
             .distinct()
         )
-        return sorted([p for p in partners if p and p.strip()])
+        employee_partners = set(
+            Employee.objects
+            .filter(role=EmployeeRole.DELIVERY_PARTNER, is_active=True)
+            .exclude(courier_company__isnull=True)
+            .exclude(courier_company__exact='')
+            .values_list('courier_company', flat=True)
+            .distinct()
+        )
+        all_partners = {p.strip() for p in (delivery_partners | employee_partners) if p and p.strip()}
+        return sorted(list(all_partners))
 
     @staticmethod
     def get_delivery_employees(company=None):
@@ -343,6 +494,7 @@ class WarehouseService:
                 'email': emp.email,
                 'phone': emp.phone,
                 'courier_company': emp.courier_company,
+                'warehouse': emp.warehouse_id,
                 'is_active': emp.is_active,
             }
             for emp in qs.order_by('full_name')
@@ -354,6 +506,7 @@ class WarehouseService:
         Dispatches an order:
         - Validates order existence
         - Validates warehouse manager's assigned warehouse if manager_user is provided
+        - Validates order is confirmed and ready for shipment
         - Validates courier company and assigned employee
         - Validates expected_delivery_date
         - Creates or updates Delivery row with status 'Assigned' (prevents duplicates)
@@ -378,6 +531,14 @@ class WarehouseService:
                         f"Permission denied: You are assigned to warehouse '{user_wh}', "
                         f"but order '{order_id}' belongs to warehouse '{order.warehouse_id}'."
                     )
+
+        # Validate order readiness for shipment
+        current_status = (order.order_status or '').strip().lower()
+        if current_status not in ['confirmed', 'pending', 'ready']:
+            raise ValueError(
+                f"Order '{order_id}' cannot be dispatched. Current status is '{order.order_status}'. "
+                "Only confirmed orders can be dispatched."
+            )
 
         # Validate courier company
         partner_clean = (delivery_partner or '').strip()

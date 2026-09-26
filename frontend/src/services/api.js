@@ -529,6 +529,79 @@ export async function rejectWarehouseReturn(returnId) {
   }
 }
 
+/**
+ * Assign an approved return request to an active delivery partner employee.
+ */
+export async function assignWarehouseReturnPickup(returnId, { delivery_partner, assigned_employee_id }) {
+  try {
+    const token = localStorage.getItem('tarika_auth_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/warehouse/returns/${returnId}/assign/`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ delivery_partner, assigned_employee_id }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const err = data.detail || data.errors?.delivery_partner?.[0] || data.errors?.assigned_employee_id?.[0] || 'Failed to assign return pickup.';
+      return { success: false, error: err };
+    }
+    return { success: true, return: data.return, message: data.message };
+  } catch (err) {
+    return { success: false, error: 'Network error assigning return pickup.' };
+  }
+}
+
+/**
+ * Confirm returned merchandise received at the warehouse.
+ */
+export async function receiveWarehouseReturn(returnId) {
+  try {
+    const token = localStorage.getItem('tarika_auth_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/warehouse/returns/${returnId}/receive/`, {
+      method: 'PATCH',
+      headers,
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to confirm return received.' };
+    }
+    return { success: true, return: data.return, message: data.message };
+  } catch (err) {
+    return { success: false, error: 'Network error confirming return received.' };
+  }
+}
+
+/**
+ * Customer submits return request for a delivered item.
+ */
+export async function requestCustomerReturn(orderId, { order_item_id, return_reason, condition_on_return = '' }, token = null) {
+  try {
+    const authToken = token || localStorage.getItem('tarika_auth_token');
+    const headers = { 'Content-Type': 'application/json' };
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+
+    const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/return/`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ order_item_id, return_reason, condition_on_return }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      const err = data.detail || data.order_item_id?.[0] || data.return_reason?.[0] || 'Failed to submit return request.';
+      return { success: false, error: err };
+    }
+    return { success: true, return: data.return, message: data.message };
+  } catch (err) {
+    return { success: false, error: 'Network error submitting return request.' };
+  }
+}
+
 
 
 export async function getProductDetail(productId) {
