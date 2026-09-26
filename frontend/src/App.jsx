@@ -5,7 +5,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import CustomerPortal from './pages/customer/CustomerPortal';
-import AdminPlaceholder from './pages/placeholders/AdminPlaceholder';
+import AdminPortal from './pages/admin/AdminPortal';
 import WarehousePortal from './pages/warehouse/WarehousePortal';
 import DeliveryPlaceholder from './pages/placeholders/DeliveryPlaceholder';
 
@@ -69,10 +69,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
           <ProtectedRoute allowedRole="ADMIN">
-            <AdminPlaceholder />
+            <AdminPortal />
           </ProtectedRoute>
         }
       />
