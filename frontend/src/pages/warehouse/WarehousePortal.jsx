@@ -12,6 +12,8 @@ import {
   updateWarehouseProduct,
   acceptWarehouseReturn,
   rejectWarehouseReturn,
+  assignWarehouseReturnPickup,
+  receiveWarehouseReturn,
   getCourierPartners,
   getDeliveryEmployees,
   dispatchWarehouseOrder,
@@ -354,9 +356,6 @@ function OrderDetailModal({ orderId, onClose, onOrderUpdated }) {
       const res = await getDeliveryEmployees(selectedCourier);
       if (active && res.success && res.employees) {
         setDeliveryEmployees(res.employees);
-        if (res.employees.length === 1) {
-          setSelectedEmployeeId(String(res.employees[0].employee_id));
-        }
       }
       if (active) setLoadingEmployees(false);
     }
@@ -621,10 +620,24 @@ function OrderDetailModal({ orderId, onClose, onOrderUpdated }) {
                           </option>
                           {deliveryEmployees.map((emp) => (
                             <option key={emp.employee_id} value={emp.employee_id}>
-                              {emp.full_name} {emp.phone ? `(${emp.phone})` : ''}
+                              {emp.full_name} (ID: #{emp.employee_id}{emp.phone ? ` • Tel: ${emp.phone}` : ''}{emp.warehouse ? ` • Warehouse: ${emp.warehouse}` : ''})
                             </option>
                           ))}
                         </select>
+                        {selectedEmployeeId && (() => {
+                          const empObj = deliveryEmployees.find(e => String(e.employee_id) === String(selectedEmployeeId));
+                          if (!empObj) return null;
+                          return (
+                            <div style={{ marginTop: '0.45rem', padding: '0.5rem 0.75rem', borderRadius: '8px', background: '#FAF7F5', border: '1px solid #E5D0CD', fontSize: '0.74rem' }}>
+                              <div style={{ fontWeight: 700, color: '#1F191B' }}>{empObj.full_name}</div>
+                              <div style={{ color: '#6B5E63', marginTop: '1px' }}>
+                                ID #{empObj.employee_id} • Courier: {empObj.courier_company}
+                                {empObj.phone ? ` • Tel: ${empObj.phone}` : ''}
+                                {empObj.warehouse ? ` • Assigned Warehouse: ${empObj.warehouse}` : ''}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Step 3: Explicit Expected Delivery Date */}
@@ -1428,8 +1441,20 @@ export default function WarehousePortal() {
   const [returnsPage, setReturnsPage] = useState(1);
   const [returnsTotalCount, setReturnsTotalCount] = useState(0);
   const [returnsTotalPages, setReturnsTotalPages] = useState(1);
-  // Tracks which return is currently being accepted/rejected (return_id → 'accepting'|'rejecting')
+  // Tracks which return is currently being accepted/rejected (return_id → 'accepting'|'rejecting'|'receiving')
   const [returnsActionPending, setReturnsActionPending] = useState({});
+
+  // Return Pickup Assignment Modal state
+  const [assignPickupModalReturn, setAssignPickupModalReturn] = useState(null);
+  const [courierPartnersList, setCourierPartnersList] = useState([]);
+  const [courierPartnersLoading, setCourierPartnersLoading] = useState(false);
+  const [assignPickupCompany, setAssignPickupCompany] = useState('');
+  const [assignPickupEmployeeId, setAssignPickupEmployeeId] = useState('');
+  const [assignPickupEmployeesList, setAssignPickupEmployeesList] = useState([]);
+  const [assignPickupEmployeesLoading, setAssignPickupEmployeesLoading] = useState(false);
+  const [assignPickupSubmitting, setAssignPickupSubmitting] = useState(false);
+  const [assignPickupError, setAssignPickupError] = useState(null);
+
 
   // Load Initial Catalog Data
   useEffect(() => {
@@ -1750,19 +1775,114 @@ export default function WarehousePortal() {
 
   const renderReturnStatusBadge = (statusStr) => {
     const st = (statusStr || '').toLowerCase();
-    let bg = '#ECFDF5', color = '#059669';
+    let bg = '#ECFDF5', color = '#059669', border = '#A7F3D0';
     if (st.includes('request') || st.includes('pending')) {
-      bg = '#FFFBEB'; color = '#D97706';
-    } else if (st.includes('approved')) {
-      bg = '#EFF6FF'; color = '#2563EB';
-    } else if (st.includes('reject')) {
-      bg = '#FEF2F2'; color = '#DC2626';
+      bg = '#FFFBEB'; color = '#D97706'; border = '#FDE68A';
+    } else if (st.includes('approved') || st.includes('accept')) {
+      bg = '#EFF6FF'; color = '#2563EB'; border = '#BFDBFE';
+    } else if (st.includes('pickup assigned')) {
+      bg = '#F3E8FF'; color = '#7E22CE'; border = '#DDD6FE';
+    } else if (st.includes('pickup accepted')) {
+      bg = '#EDE9FE'; color = '#6D28D9'; border = '#C4B5FD';
+    } else if (st.includes('picked up')) {
+      bg = '#FEF3C7'; color = '#B45309'; border = '#FCD34D';
+    } else if (st.includes('received at warehouse')) {
+      bg = '#E0F2FE'; color = '#0369A1'; border = '#BAE6FD';
+    } else if (st.includes('reject') || st.includes('failed')) {
+      bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA';
+    } else if (st.includes('completed') || st.includes('refund')) {
+      bg = '#ECFDF5'; color = '#059669'; border = '#A7F3D0';
     }
     return (
-      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.65rem', borderRadius: '9999px', backgroundColor: bg, color, textTransform: 'capitalize' }}>
+      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '0.25rem 0.65rem', borderRadius: '9999px', backgroundColor: bg, color, border: `1px solid ${border}`, textTransform: 'capitalize' }}>
         {statusStr || 'Requested'}
       </span>
     );
+  };
+
+  const fetchCourierPartnersList = useCallback(async () => {
+    setCourierPartnersLoading(true);
+    const res = await getCourierPartners();
+    setCourierPartnersLoading(false);
+    if (res.success && Array.isArray(res.partners)) {
+      setCourierPartnersList(res.partners);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCourierPartnersList();
+  }, [fetchCourierPartnersList]);
+
+  const handleOpenAssignPickupModal = (ret) => {
+    setAssignPickupModalReturn(ret);
+    setAssignPickupCompany('');
+    setAssignPickupEmployeeId('');
+    setAssignPickupEmployeesList([]);
+    setAssignPickupError(null);
+    if (!courierPartnersList || courierPartnersList.length === 0) {
+      fetchCourierPartnersList();
+    }
+  };
+
+
+  const handleAssignCompanyChange = async (e) => {
+    const comp = e.target.value;
+    setAssignPickupCompany(comp);
+    setAssignPickupEmployeeId('');
+    setAssignPickupError(null);
+    if (!comp) {
+      setAssignPickupEmployeesList([]);
+      return;
+    }
+    setAssignPickupEmployeesLoading(true);
+    const res = await getDeliveryEmployees(comp);
+    setAssignPickupEmployeesLoading(false);
+    if (res.success && res.employees) {
+      setAssignPickupEmployeesList(res.employees);
+    } else {
+      setAssignPickupEmployeesList([]);
+      setAssignPickupError(res.error || 'Failed to load delivery employees for this courier.');
+    }
+  };
+
+  const handleConfirmAssignPickup = async () => {
+    if (!assignPickupModalReturn) return;
+    if (!assignPickupCompany) {
+      setAssignPickupError('Please select a courier company.');
+      return;
+    }
+    if (!assignPickupEmployeeId) {
+      setAssignPickupError('Please select an active delivery partner employee.');
+      return;
+    }
+
+    setAssignPickupSubmitting(true);
+    setAssignPickupError(null);
+    const res = await assignWarehouseReturnPickup(assignPickupModalReturn.return_id, {
+      delivery_partner: assignPickupCompany,
+      assigned_employee_id: assignPickupEmployeeId,
+    });
+    setAssignPickupSubmitting(false);
+
+    if (res.success && res.return) {
+      setReturnsList(prev => prev.map(r => r.return_id === assignPickupModalReturn.return_id ? res.return : r));
+      setAssignPickupModalReturn(null);
+    } else {
+      setAssignPickupError(res.error || 'Failed to assign return pickup.');
+    }
+  };
+
+  const handleConfirmReturnReceived = async (ret) => {
+    if (!window.confirm(`Confirm merchandise for Return ${ret.return_id} has arrived at the warehouse?`)) return;
+    setReturnsActionPending(prev => ({ ...prev, [ret.return_id]: 'receiving' }));
+    const res = await receiveWarehouseReturn(ret.return_id);
+    setReturnsActionPending(prev => { const n = { ...prev }; delete n[ret.return_id]; return n; });
+
+    if (res.success && res.return) {
+      setReturnsList(prev => prev.map(r => r.return_id === ret.return_id ? res.return : r));
+    } else {
+      alert(res.error || 'Failed to confirm return received.');
+    }
   };
 
   return (
@@ -2995,10 +3115,15 @@ export default function WarehousePortal() {
                     }}
                   >
                     <option value="ALL">All Return Statuses</option>
-                    <option value="refunded">Refunded</option>
                     <option value="requested">Requested</option>
                     <option value="approved">Approved</option>
+                    <option value="pickup assigned">Pickup Assigned</option>
+                    <option value="pickup accepted">Pickup Accepted</option>
+                    <option value="picked up">Picked Up</option>
+                    <option value="received at warehouse">Received at Warehouse</option>
+                    <option value="completed">Completed / Refunded</option>
                     <option value="rejected">Rejected</option>
+                    <option value="failed">Failed</option>
                   </select>
                 </div>
               </div>
@@ -3093,46 +3218,147 @@ export default function WarehousePortal() {
                               )}
                             </td>
                             <td style={{ padding: '1rem 1.25rem', whiteSpace: 'nowrap' }}>
-                              {isRequested ? (
-                                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                  <button
-                                    onClick={handleAccept}
-                                    disabled={!!actionState}
-                                    style={{
-                                      padding: '0.35rem 0.85rem',
-                                      borderRadius: '7px',
-                                      border: '1px solid #A7F3D0',
-                                      backgroundColor: actionState === 'accepting' ? '#D1FAE5' : '#ECFDF5',
-                                      color: '#059669',
-                                      fontSize: '0.78rem',
-                                      fontWeight: 700,
-                                      cursor: actionState ? 'wait' : 'pointer',
-                                      transition: 'all 0.2s ease',
-                                    }}
-                                  >
-                                    {actionState === 'accepting' ? '...' : 'Accept'}
-                                  </button>
-                                  <button
-                                    onClick={handleReject}
-                                    disabled={!!actionState}
-                                    style={{
-                                      padding: '0.35rem 0.85rem',
-                                      borderRadius: '7px',
-                                      border: '1px solid #FECACA',
-                                      backgroundColor: actionState === 'rejecting' ? '#FEE2E2' : '#FEF2F2',
-                                      color: '#DC2626',
-                                      fontSize: '0.78rem',
-                                      fontWeight: 700,
-                                      cursor: actionState ? 'wait' : 'pointer',
-                                      transition: 'all 0.2s ease',
-                                    }}
-                                  >
-                                    {actionState === 'rejecting' ? '...' : 'Reject'}
-                                  </button>
-                                </div>
-                              ) : (
-                                <span style={{ fontSize: '0.75rem', color: '#9E8F94' }}>—</span>
-                              )}
+                              {(() => {
+                                const retStatus = (ret.return_status || '').trim().toLowerCase();
+                                const isReq = retStatus === 'requested';
+                                const isAppr = retStatus === 'approved' || retStatus === 'accepted';
+                                const isPickedUpOrWarehouse = retStatus === 'picked up' || retStatus === 'received at warehouse';
+                                const isPickupAssigned = retStatus === 'pickup assigned' || retStatus === 'pickup accepted';
+                                const isComp = retStatus === 'completed' || retStatus === 'refunded';
+
+                                if (isReq) {
+                                  return (
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                      <button
+                                        onClick={handleAccept}
+                                        disabled={!!actionState}
+                                        style={{
+                                          padding: '0.35rem 0.85rem',
+                                          borderRadius: '7px',
+                                          border: '1px solid #A7F3D0',
+                                          backgroundColor: actionState === 'accepting' ? '#D1FAE5' : '#ECFDF5',
+                                          color: '#059669',
+                                          fontSize: '0.78rem',
+                                          fontWeight: 700,
+                                          cursor: actionState ? 'wait' : 'pointer',
+                                          transition: 'all 0.2s ease',
+                                        }}
+                                      >
+                                        {actionState === 'accepting' ? '...' : 'Approve'}
+                                      </button>
+                                      <button
+                                        onClick={handleReject}
+                                        disabled={!!actionState}
+                                        style={{
+                                          padding: '0.35rem 0.85rem',
+                                          borderRadius: '7px',
+                                          border: '1px solid #FECACA',
+                                          backgroundColor: actionState === 'rejecting' ? '#FEE2E2' : '#FEF2F2',
+                                          color: '#DC2626',
+                                          fontSize: '0.78rem',
+                                          fontWeight: 700,
+                                          cursor: actionState ? 'wait' : 'pointer',
+                                          transition: 'all 0.2s ease',
+                                        }}
+                                      >
+                                        {actionState === 'rejecting' ? '...' : 'Reject'}
+                                      </button>
+                                    </div>
+                                  );
+                                }
+
+                                if (isAppr) {
+                                  return (
+                                    <button
+                                      onClick={() => handleOpenAssignPickupModal(ret)}
+                                      style={{
+                                        padding: '0.4rem 0.95rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid #8E3642',
+                                        backgroundColor: '#8E3642',
+                                        color: '#FFFFFF',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 700,
+                                        cursor: 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 2px 6px rgba(142, 54, 66, 0.2)',
+                                      }}
+                                    >
+                                      <Truck size={13} />
+                                      <span>Assign Pickup</span>
+                                    </button>
+                                  );
+                                }
+
+                                if (isPickedUpOrWarehouse) {
+                                  return (
+                                    <button
+                                      onClick={() => handleConfirmReturnReceived(ret)}
+                                      disabled={actionState === 'receiving'}
+                                      style={{
+                                        padding: '0.4rem 0.95rem',
+                                        borderRadius: '8px',
+                                        border: '1px solid #059669',
+                                        backgroundColor: actionState === 'receiving' ? '#D1FAE5' : '#059669',
+                                        color: '#FFFFFF',
+                                        fontSize: '0.78rem',
+                                        fontWeight: 700,
+                                        cursor: actionState ? 'wait' : 'pointer',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        transition: 'all 0.2s ease',
+                                        boxShadow: '0 2px 6px rgba(5, 150, 105, 0.2)',
+                                      }}
+                                    >
+                                      <CheckCircle size={13} />
+                                      <span>{actionState === 'receiving' ? 'Confirming...' : 'Confirm Received'}</span>
+                                    </button>
+                                  );
+                                }
+
+                                if (isPickupAssigned) {
+                                  return (
+                                    <div style={{ fontSize: '0.78rem' }}>
+                                      <span style={{ color: '#7E22CE', fontWeight: 700, display: 'block' }}>
+                                        Assigned: {ret.assigned_employee_name || 'Driver'}
+                                      </span>
+                                      <span style={{ color: '#6B5E63', fontSize: '0.72rem' }}>
+                                        {ret.delivery_partner || 'Courier'}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+
+                                if (isComp) {
+                                  return (
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#059669' }}>
+                                      ✓ Return Received
+                                    </span>
+                                  );
+                                }
+
+                                if (retStatus === 'rejected') {
+                                  return (
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#DC2626' }}>
+                                      ✕ Rejected
+                                    </span>
+                                  );
+                                }
+
+                                if (retStatus === 'failed') {
+                                  return (
+                                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#DC2626' }}>
+                                      ⚠ Pickup Failed
+                                    </span>
+                                  );
+                                }
+
+                                return <span style={{ fontSize: '0.75rem', color: '#9E8F94' }}>—</span>;
+                              })()}
                             </td>
                           </tr>
                           );
@@ -3276,6 +3502,265 @@ export default function WarehousePortal() {
             fetchOrders();
           }}
         />
+      )}
+
+      {/* Return Pickup Assignment Modal */}
+      {assignPickupModalReturn && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(31, 25, 27, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            zIndex: 1100,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => setAssignPickupModalReturn(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '24px',
+              maxWidth: '560px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              border: '1px solid var(--tarika-border, #F0E2E0)',
+              boxShadow: '0 20px 60px rgba(31, 25, 27, 0.2)',
+              padding: '2rem',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setAssignPickupModalReturn(null)}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: '1.5rem',
+                right: '1.5rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9E8F94',
+                padding: '6px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Title */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#8E3642', marginBottom: '4px' }}>
+                <RotateCcw size={15} color="#B8505E" />
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  Return Reverse Logistics
+                </span>
+              </div>
+              <h2
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '1.6rem',
+                  fontWeight: 700,
+                  color: '#1F191B',
+                  margin: '0.25rem 0',
+                }}
+              >
+                Assign Return Pickup
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B5E63' }}>
+                Select an active delivery partner employee to pick up the return from customer.
+              </p>
+            </div>
+
+            {/* Return Item Summary Card */}
+            <div
+              style={{
+                backgroundColor: '#FAF7F5',
+                border: '1px solid #F0E2E0',
+                borderRadius: '14px',
+                padding: '1rem',
+                marginBottom: '1.5rem',
+                fontSize: '0.84rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ color: '#6B5E63' }}>Return Ref:</span>
+                <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#1F191B' }}>
+                  {assignPickupModalReturn?.return_id}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ color: '#6B5E63' }}>Product:</span>
+                <span style={{ fontWeight: 600, color: '#1F191B' }}>
+                  {assignPickupModalReturn?.product_name || 'Boutique Apparel'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <span style={{ color: '#6B5E63' }}>Customer:</span>
+                <span style={{ fontWeight: 600, color: '#1F191B' }}>
+                  {assignPickupModalReturn?.customer_name || 'Customer'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#6B5E63' }}>Return Reason:</span>
+                <span style={{ fontWeight: 600, color: '#B8505E' }}>
+                  {assignPickupModalReturn?.return_reason || 'Customer Return'}
+                </span>
+              </div>
+            </div>
+
+            {/* Error Alert */}
+            {assignPickupError && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '10px',
+                  padding: '0.75rem 1rem',
+                  color: '#DC2626',
+                  fontSize: '0.84rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <AlertCircle size={16} />
+                <span>{assignPickupError}</span>
+              </div>
+            )}
+
+            {/* 1. Courier Company Selection */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#1F191B', marginBottom: '0.4rem' }}>
+                1. Courier Company <span style={{ color: '#DC2626' }}>*</span>
+              </label>
+              <select
+                value={assignPickupCompany}
+                onChange={handleAssignCompanyChange}
+                disabled={courierPartnersLoading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #F0E2E0',
+                  backgroundColor: '#FFFFFF',
+                  color: '#1F191B',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+              >
+                <option value="">
+                  {courierPartnersLoading
+                    ? 'Loading courier partners...'
+                    : '— Select Courier Partner —'}
+                </option>
+                {(courierPartnersList || []).map(partner => (
+                  <option key={partner} value={partner}>
+                    {partner}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 2. Delivery Partner Employee Selection */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#1F191B', marginBottom: '0.4rem' }}>
+                2. Delivery Partner Employee <span style={{ color: '#DC2626' }}>*</span>
+              </label>
+              <select
+                value={assignPickupEmployeeId}
+                onChange={(e) => setAssignPickupEmployeeId(e.target.value)}
+                disabled={!assignPickupCompany || assignPickupEmployeesLoading}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '10px',
+                  border: '1.5px solid #F0E2E0',
+                  backgroundColor: !assignPickupCompany ? '#F9F6F4' : '#FFFFFF',
+                  color: '#1F191B',
+                  fontSize: '0.88rem',
+                  fontWeight: 600,
+                  outline: 'none',
+                  cursor: !assignPickupCompany ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <option value="">
+                  {!assignPickupCompany
+                    ? '— Select courier company first —'
+                    : assignPickupEmployeesLoading
+                    ? 'Loading active employees...'
+                    : (assignPickupEmployeesList || []).length === 0
+                    ? '— No active delivery employees found —'
+                    : '— Select Active Delivery Partner Employee —'}
+                </option>
+                {(assignPickupEmployeesList || []).map(emp => (
+                  <option key={emp.employee_id} value={emp.employee_id}>
+                    {emp.full_name} (ID: {emp.employee_id}) — {emp.phone || 'Phone on file'}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setAssignPickupModalReturn(null)}
+                className="tarika-btn-outline"
+                style={{ padding: '0.65rem 1.25rem', fontSize: '0.85rem' }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAssignPickup}
+                disabled={assignPickupSubmitting || !assignPickupCompany || !assignPickupEmployeeId}
+                className="tarika-btn"
+                style={{
+                  padding: '0.65rem 1.5rem',
+                  fontSize: '0.85rem',
+                  backgroundColor: '#8E3642',
+                  borderColor: '#8E3642',
+                  color: '#FFFFFF',
+                  cursor: assignPickupSubmitting || !assignPickupCompany || !assignPickupEmployeeId ? 'not-allowed' : 'pointer',
+                  opacity: !assignPickupCompany || !assignPickupEmployeeId ? 0.6 : 1,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                {assignPickupSubmitting ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Assigning...</span>
+                  </>
+                ) : (
+                  <>
+                    <Truck size={14} />
+                    <span>Confirm Hand-off & Assign</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

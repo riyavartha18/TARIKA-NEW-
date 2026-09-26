@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from warehouse.models import Delivery, Order
+from warehouse.models import Delivery, Order, Return
 from accounts.models import Employee, Customer
 from catalog.models import OrderItem, Product
 from catalog.serializers import CATEGORY_IMAGE_MAPPING
@@ -231,4 +231,102 @@ class DeliveryStatusUpdateSerializer(serializers.Serializer):
                 return s
         raise serializers.ValidationError(
             f"Invalid status '{value}'. Allowed statuses: {', '.join(self.ALLOWED_STATUSES)}"
+        )
+
+
+class DeliveryReturnPickupSerializer(serializers.ModelSerializer):
+    """
+    Serializes a Return item for the Delivery Partner Return Pickup portal.
+    Exposes all essential information needed by the driver to complete pickup.
+    """
+    order_id = serializers.SerializerMethodField()
+    customer_name = serializers.CharField(source='customer.full_name', read_only=True, default='Valued Customer')
+    customer_phone = serializers.CharField(source='customer.phone', read_only=True, default='')
+    customer_email = serializers.CharField(source='customer.email', read_only=True, default='')
+    customer_address = serializers.SerializerMethodField()
+    customer_city = serializers.CharField(source='customer.city', read_only=True, default='')
+    product_id = serializers.SerializerMethodField()
+    product_name = serializers.SerializerMethodField()
+    sku = serializers.SerializerMethodField()
+    quantity = serializers.SerializerMethodField()
+    pickup_status = serializers.CharField(source='return_status', read_only=True)
+    assigned_employee_name = serializers.CharField(source='assigned_employee.full_name', read_only=True, default='')
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Return
+        fields = [
+            'return_id',
+            'order_id',
+            'customer_name',
+            'customer_phone',
+            'customer_email',
+            'customer_address',
+            'customer_city',
+            'product_id',
+            'product_name',
+            'sku',
+            'quantity',
+            'return_reason',
+            'condition_on_return',
+            'refund_amount',
+            'pickup_status',
+            'return_status',
+            'return_date',
+            'pickup_date',
+            'delivery_partner',
+            'assigned_employee_id',
+            'assigned_employee_name',
+            'image',
+        ]
+
+    def get_order_id(self, obj):
+        return obj.order_item.order_id if obj.order_item else None
+
+    def get_customer_address(self, obj):
+        if obj.order_item and obj.order_item.order_id:
+            order = Order.objects.filter(order_id=obj.order_item.order_id).first()
+            if order and order.shipping_address:
+                return order.shipping_address
+        if obj.customer:
+            parts = [getattr(obj.customer, p, '') for p in ['city', 'state', 'country'] if getattr(obj.customer, p, '')]
+            return ', '.join(parts)
+        return 'Customer address on file'
+
+    def get_product_id(self, obj):
+        return obj.order_item.product_id if obj.order_item else None
+
+    def get_product_name(self, obj):
+        if obj.order_item and obj.order_item.product:
+            return obj.order_item.product.product_name or 'Boutique Apparel'
+        return 'Boutique Apparel'
+
+    def get_sku(self, obj):
+        if obj.order_item and obj.order_item.product:
+            return obj.order_item.product.sku or ''
+        return ''
+
+    def get_quantity(self, obj):
+        return getattr(obj.order_item, 'quantity', 1) if obj.order_item else 1
+
+    def get_image(self, obj):
+        if obj.order_item and obj.order_item.product and obj.order_item.product.category:
+            cat_name = (obj.order_item.product.category.category_name or '').strip().lower()
+            return CATEGORY_IMAGE_MAPPING.get(cat_name, None)
+        return None
+
+
+class ReturnPickupStatusUpdateSerializer(serializers.Serializer):
+    ALLOWED_STATUSES = ['Pickup Accepted', 'Picked Up', 'Received at Warehouse', 'Failed']
+
+    status = serializers.CharField(required=True)
+    reason = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate_status(self, value):
+        normalized = value.strip().lower()
+        for s in self.ALLOWED_STATUSES:
+            if s.lower() == normalized:
+                return s
+        raise serializers.ValidationError(
+            f"Invalid status '{value}'. Allowed return pickup statuses: {', '.join(self.ALLOWED_STATUSES)}"
         )

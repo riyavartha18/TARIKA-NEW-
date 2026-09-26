@@ -400,6 +400,18 @@ class WarehouseReturnSerializer(serializers.ModelSerializer):
     product_id = serializers.SerializerMethodField()
     product_name = serializers.SerializerMethodField()
     product_sku = serializers.SerializerMethodField()
+    quantity = serializers.SerializerMethodField()
+    assigned_employee_id = serializers.SerializerMethodField()
+    assigned_employee_name = serializers.CharField(source='assigned_employee.full_name', read_only=True, default='')
+
+    def get_assigned_employee_id(self, obj):
+        if obj.assigned_employee_id:
+            try:
+                return int(obj.assigned_employee_id)
+            except (ValueError, TypeError):
+                return obj.assigned_employee_id
+        return None
+
 
     class Meta:
         model = Return
@@ -413,11 +425,16 @@ class WarehouseReturnSerializer(serializers.ModelSerializer):
             'product_id',
             'product_name',
             'product_sku',
+            'quantity',
             'return_reason',
             'return_date',
             'return_status',
             'refund_amount',
-            'condition_on_return'
+            'condition_on_return',
+            'assigned_employee_id',
+            'assigned_employee_name',
+            'delivery_partner',
+            'pickup_date',
         ]
 
     def get_order_id(self, obj):
@@ -435,6 +452,43 @@ class WarehouseReturnSerializer(serializers.ModelSerializer):
         if obj.order_item and obj.order_item.product:
             return obj.order_item.product.sku or ''
         return ''
+
+    def get_quantity(self, obj):
+        return getattr(obj.order_item, 'quantity', 1) if obj.order_item else 1
+
+
+class WarehouseReturnAssignSerializer(serializers.Serializer):
+    """
+    Validates payload submitted by Warehouse Manager when assigning a return pickup.
+    Accepts either 'delivery_partner' or 'courier_company' interchangeably.
+    """
+    delivery_partner = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default='',
+        max_length=255,
+        trim_whitespace=True
+    )
+    courier_company = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default='',
+        max_length=255,
+        trim_whitespace=True
+    )
+    assigned_employee_id = serializers.IntegerField(
+        required=True,
+        error_messages={'required': 'Please select an active delivery partner employee.'}
+    )
+
+    def validate(self, attrs):
+        partner = (attrs.get('delivery_partner') or '').strip() or (attrs.get('courier_company') or '').strip()
+        if not partner:
+            raise serializers.ValidationError({'delivery_partner': 'Please select a courier company.'})
+        attrs['delivery_partner'] = partner
+        attrs['courier_company'] = partner
+        return attrs
+
 
 
 class WarehouseOrderDispatchSerializer(serializers.Serializer):

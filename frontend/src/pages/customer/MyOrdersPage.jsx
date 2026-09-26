@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useCustomer } from '../../context/CustomerContext';
-import { getCustomerOrders, submitProductReview } from '../../services/api';
+import { getCustomerOrders, submitProductReview, requestCustomerReturn } from '../../services/api';
 
 export default function MyOrdersPage() {
   const { token, user } = useAuth();
@@ -50,6 +50,69 @@ export default function MyOrdersPage() {
   const [reviewText, setReviewText] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
+
+  // Return Request Modal state
+  const [returnModalItem, setReturnModalItem] = useState(null);
+  const [returnReason, setReturnReason] = useState('Quality Issue');
+  const [returnCondition, setReturnCondition] = useState('Unused, original packaging with tags intact');
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnError, setReturnError] = useState('');
+
+  // Return Tracking Modal state
+  const [returnTrackingItem, setReturnTrackingItem] = useState(null);
+
+  const handleOpenReturnModal = (item) => {
+    setReturnModalItem(item);
+    setReturnReason('Quality Issue');
+    setReturnCondition('Unused, original packaging with tags intact');
+    setReturnError('');
+  };
+
+  const handleSubmitReturnRequest = async (e) => {
+    e.preventDefault();
+    if (!returnModalItem) return;
+    if (!returnReason.trim()) {
+      setReturnError('Please select or specify a reason for return.');
+      return;
+    }
+
+    setSubmittingReturn(true);
+    setReturnError('');
+
+    const res = await requestCustomerReturn(
+      returnModalItem.order.order_id,
+      {
+        order_item_id: returnModalItem.orderItemId,
+        return_reason: returnReason,
+        condition_on_return: returnCondition,
+      },
+      token
+    );
+
+    setSubmittingReturn(false);
+
+    if (res.success && res.return) {
+      addToast('Return request submitted successfully. Our atelier team will review it shortly.', 'success');
+      // Update local state
+      setOrders(prevOrders => {
+        return prevOrders.map(ord => {
+          if (ord.order_id === returnModalItem.order.order_id) {
+            const updatedItems = (ord.items || []).map(itm => {
+              if (itm.order_item_id === returnModalItem.orderItemId) {
+                return { ...itm, return_info: res.return };
+              }
+              return itm;
+            });
+            return { ...ord, items: updatedItems };
+          }
+          return ord;
+        });
+      });
+      setReturnModalItem(null);
+    } else {
+      setReturnError(res.error || 'Failed to submit return request.');
+    }
+  };
 
   useEffect(() => {
     document.title = 'My Orders — TARIKA Luxury';
@@ -919,6 +982,78 @@ export default function MyOrdersPage() {
                         <span>Rate this product</span>
                       </button>
                     )}
+
+                    {/* Return Request or Return Status Button */}
+                    {(() => {
+                      const isDelivered = (item.status || '').toLowerCase() === 'delivered' || (item.delivery?.delivery_status || '').toLowerCase() === 'delivered';
+                      const ret = item.returnInfo;
+
+                      if (ret) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => setReturnTrackingItem(item)}
+                            style={{
+                              padding: '0.55rem 1rem',
+                              borderRadius: '9999px',
+                              backgroundColor: '#F3E8FF',
+                              border: '1px solid #D8B4FE',
+                              color: '#7E22CE',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#EDE9FE';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#F3E8FF';
+                            }}
+                          >
+                            <RotateCcw size={13} color="#7E22CE" />
+                            <span>Return: {ret.return_status}</span>
+                          </button>
+                        );
+                      }
+
+                      if (isDelivered && item.orderItemId) {
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenReturnModal(item)}
+                            style={{
+                              padding: '0.55rem 1rem',
+                              borderRadius: '9999px',
+                              backgroundColor: '#FFF1F2',
+                              border: '1px solid #FECDD3',
+                              color: '#BE123C',
+                              fontSize: '0.82rem',
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FFE4E6';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.backgroundColor = '#FFF1F2';
+                            }}
+                          >
+                            <RotateCcw size={13} color="#BE123C" />
+                            <span>Request Return</span>
+                          </button>
+                        );
+                      }
+
+                      return null;
+                    })()}
 
                     <button
                       type="button"
@@ -1852,6 +1987,553 @@ export default function MyOrdersPage() {
           </div>
         </div>
       )}
+
+      {/* RETURN REQUEST MODAL */}
+      {returnModalItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(31, 25, 27, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            zIndex: 1000,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => setReturnModalItem(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '24px',
+              maxWidth: '560px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              border: '1px solid rgba(216, 114, 126, 0.3)',
+              boxShadow: '0 20px 60px rgba(31, 25, 27, 0.2)',
+              padding: '2rem',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setReturnModalItem(null)}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: '1.5rem',
+                right: '1.5rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9E8F94',
+                padding: '6px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Title */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#BE123C', marginBottom: '4px' }}>
+                <RotateCcw size={15} color="#BE123C" />
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  Atelier Concierge
+                </span>
+              </div>
+              <h2
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '1.6rem',
+                  fontWeight: 700,
+                  color: '#1F191B',
+                  margin: '0.25rem 0',
+                }}
+              >
+                Request Item Return
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B5E63' }}>
+                Submit a return request for doorstep pickup and refund processing.
+              </p>
+            </div>
+
+            {/* Item Card */}
+            <div
+              style={{
+                display: 'flex',
+                gap: '14px',
+                padding: '12px',
+                borderRadius: '16px',
+                backgroundColor: '#FAF7F5',
+                border: '1px solid #F0E2E0',
+                marginBottom: '1.5rem',
+              }}
+            >
+              <img
+                src={returnModalItem.image}
+                alt={returnModalItem.productName}
+                style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '10px' }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: '0 0 2px 0', fontSize: '0.9rem', fontWeight: 700, color: '#1F191B' }}>
+                  {returnModalItem.productName}
+                </p>
+                <p style={{ margin: 0, fontSize: '0.76rem', color: '#6B5E63' }}>
+                  Order #{returnModalItem.order?.order_id?.slice(0, 14)}...
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', fontWeight: 700, color: '#059669' }}>
+                  Estimated Refund: ₹{Number(returnModalItem.lineTotal || 0).toLocaleString('en-IN')}
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmitReturnRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Reason Dropdown */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#1F191B', marginBottom: '6px' }}>
+                  Reason for Return <span style={{ color: '#DC2626' }}>*</span>
+                </label>
+                <select
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #F0E2E0',
+                    backgroundColor: '#FFFFFF',
+                    color: '#1F191B',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                  }}
+                >
+                  <option value="Quality Issue">Quality Issue / Fabric not as expected</option>
+                  <option value="Size Issue">Size Issue / Fit not suitable</option>
+                  <option value="Defective / Damaged">Defective / Damaged in transit</option>
+                  <option value="Wrong Product Delivered">Wrong Product / Style delivered</option>
+                  <option value="Color Difference">Color / Pattern difference</option>
+                  <option value="Changed Mind">Changed Mind / Found alternative</option>
+                </select>
+              </div>
+
+              {/* Remarks / Condition */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#1F191B', marginBottom: '6px' }}>
+                  Merchandise Condition
+                </label>
+                <textarea
+                  rows={3}
+                  value={returnCondition}
+                  onChange={(e) => setReturnCondition(e.target.value)}
+                  placeholder="e.g. Unused with original tags and luxury box packaging..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '12px',
+                    border: '1.5px solid #F0E2E0',
+                    fontSize: '0.88rem',
+                    color: '#1F191B',
+                    lineHeight: 1.5,
+                    resize: 'vertical',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              {/* Error Message */}
+              {returnError && (
+                <div
+                  style={{
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    backgroundColor: '#FEF2F2',
+                    border: '1px solid #FECACA',
+                    color: '#DC2626',
+                    fontSize: '0.82rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  <AlertCircle size={16} />
+                  <span>{returnError}</span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setReturnModalItem(null)}
+                  disabled={submittingReturn}
+                  style={{
+                    padding: '0.75rem 1.4rem',
+                    borderRadius: '9999px',
+                    border: '1px solid #E0D2D0',
+                    backgroundColor: '#FFFFFF',
+                    color: '#6B5E63',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReturn}
+                  className="tarika-btn-primary"
+                  style={{
+                    padding: '0.75rem 1.6rem',
+                    fontSize: '0.85rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    backgroundColor: '#BE123C',
+                    borderColor: '#BE123C',
+                  }}
+                >
+                  {submittingReturn ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RotateCcw size={14} />
+                      <span>Confirm Return Request</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* RETURN TRACKING MODAL */}
+      {returnTrackingItem && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(31, 25, 27, 0.65)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.5rem',
+            zIndex: 1000,
+            animation: 'fadeIn 0.2s ease-out',
+          }}
+          onClick={() => setReturnTrackingItem(null)}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '24px',
+              maxWidth: '560px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              border: '1px solid rgba(216, 114, 126, 0.3)',
+              boxShadow: '0 20px 60px rgba(31, 25, 27, 0.2)',
+              padding: '2rem',
+              position: 'relative',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setReturnTrackingItem(null)}
+              aria-label="Close"
+              style={{
+                position: 'absolute',
+                top: '1.5rem',
+                right: '1.5rem',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9E8F94',
+                padding: '6px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Modal Title */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: '#7E22CE', marginBottom: '4px' }}>
+                <RotateCcw size={15} color="#7E22CE" />
+                <span style={{ fontSize: '0.74rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                  Reverse Logistics
+                </span>
+              </div>
+              <h2
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: '1.6rem',
+                  fontWeight: 700,
+                  color: '#1F191B',
+                  margin: '0.25rem 0',
+                }}
+              >
+                Return & Refund Progress
+              </h2>
+              <p style={{ margin: 0, fontSize: '0.85rem', color: '#6B5E63' }}>
+                Tracking real-time reverse fulfillment and refund verification.
+              </p>
+            </div>
+
+            {/* Return Item Card */}
+            {(() => {
+              const ret = returnTrackingItem.returnInfo || {};
+              const st = (ret.return_status || '').toLowerCase();
+
+              let activeIdx = 0;
+              if (st.includes('request')) activeIdx = 0;
+              else if (st === 'approved' || st === 'accepted') activeIdx = 1;
+              else if (st === 'pickup assigned') activeIdx = 2;
+              else if (st === 'pickup accepted') activeIdx = 3;
+              else if (st === 'picked up') activeIdx = 4;
+              else if (st === 'received at warehouse') activeIdx = 5;
+              else if (st === 'completed' || st === 'refunded') activeIdx = 6;
+
+              const isRejected = st === 'rejected';
+              const isFailed = st === 'failed';
+
+              const stages = [
+                { title: 'Return Requested', desc: ret.return_date ? `Submitted on ${ret.return_date}` : 'Request registered' },
+                { title: 'Return Approved', desc: 'Approved by fulfillment center' },
+                { title: 'Pickup Assigned', desc: ret.delivery_partner ? `Assigned to ${ret.delivery_partner}` : 'Courier driver assignment' },
+                { title: 'Pickup Accepted', desc: 'Driver accepted pickup' },
+                { title: 'Picked Up', desc: 'Merchandise collected from customer' },
+                { title: 'Received at Warehouse', desc: 'Arrived at fulfillment center' },
+                { title: 'Return Completed', desc: ret.refund_amount ? `Refund ₹${Number(ret.refund_amount).toLocaleString('en-IN')} confirmed` : 'Inspection & refund complete' },
+              ];
+
+              return (
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '14px',
+                      padding: '12px',
+                      borderRadius: '16px',
+                      backgroundColor: '#FAF7F5',
+                      border: '1px solid #F0E2E0',
+                      marginBottom: '1.5rem',
+                    }}
+                  >
+                    <img
+                      src={returnTrackingItem.image}
+                      alt={returnTrackingItem.productName}
+                      style={{ width: '64px', height: '64px', objectFit: 'cover', borderRadius: '10px' }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: '0 0 2px 0', fontSize: '0.9rem', fontWeight: 700, color: '#1F191B' }}>
+                        {returnTrackingItem.productName}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.76rem', color: '#6B5E63' }}>
+                        Return Ref: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{ret.return_id}</span>
+                      </p>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.84rem', fontWeight: 700, color: '#7E22CE' }}>
+                        Status: {ret.return_status || 'Requested'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Exception Banner if Rejected or Failed */}
+                  {isRejected && (
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        backgroundColor: '#FEF2F2',
+                        border: '1px solid #FECACA',
+                        color: '#DC2626',
+                        fontSize: '0.85rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <XCircle size={18} />
+                      <span>This return request was reviewed and rejected by the warehouse facility.</span>
+                    </div>
+                  )}
+
+                  {isFailed && (
+                    <div
+                      style={{
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        backgroundColor: '#FFFBEB',
+                        border: '1px solid #FDE68A',
+                        color: '#D97706',
+                        fontSize: '0.85rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <AlertCircle size={18} />
+                      <span>Pickup attempt unsuccessful: {ret.condition_on_return || 'Customer unavailable'}</span>
+                    </div>
+                  )}
+
+                  {/* Vertical Timeline */}
+                  {!isRejected && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative', marginBottom: '1.5rem' }}>
+                      {stages.map((stg, i) => {
+                        const isPassed = i < activeIdx;
+                        const isCurrent = i === activeIdx;
+                        const isFuture = i > activeIdx;
+
+                        return (
+                          <div key={i} style={{ display: 'flex', gap: '1.25rem', position: 'relative' }}>
+                            {i < stages.length - 1 && (
+                              <div
+                                style={{
+                                  position: 'absolute',
+                                  top: '24px',
+                                  left: '13px',
+                                  width: '2px',
+                                  bottom: '-4px',
+                                  backgroundColor: isPassed ? '#7E22CE' : '#F0E2E0',
+                                  zIndex: 1,
+                                }}
+                              />
+                            )}
+
+                            <div style={{ zIndex: 2, padding: '2px 0' }}>
+                              {isPassed ? (
+                                <div
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#7E22CE',
+                                    color: '#FFFFFF',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 2px 8px rgba(126, 34, 206, 0.25)',
+                                  }}
+                                >
+                                  <Check size={14} strokeWidth={3} />
+                                </div>
+                              ) : isCurrent ? (
+                                <div
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#FFFFFF',
+                                    border: '3px solid #7E22CE',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    boxShadow: '0 0 0 4px rgba(126, 34, 206, 0.15)',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: '10px',
+                                      height: '10px',
+                                      borderRadius: '50%',
+                                      backgroundColor: '#7E22CE',
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div
+                                  style={{
+                                    width: '28px',
+                                    height: '28px',
+                                    borderRadius: '50%',
+                                    backgroundColor: '#FAF7F5',
+                                    border: '1.5px solid #F0E2E0',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: '6px',
+                                      height: '6px',
+                                      borderRadius: '50%',
+                                      backgroundColor: '#D1C4C2',
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+
+                            <div style={{ paddingBottom: '1.5rem', flex: 1 }}>
+                              <p
+                                style={{
+                                  margin: '3px 0 2px 0',
+                                  fontSize: '0.88rem',
+                                  fontWeight: isCurrent || isPassed ? 700 : 500,
+                                  color: isCurrent ? '#7E22CE' : isPassed ? '#1F191B' : '#9E8F94',
+                                }}
+                              >
+                                {stg.title}
+                              </p>
+                              <p style={{ margin: 0, fontSize: '0.78rem', color: isCurrent ? '#4B5563' : '#6B5E63' }}>
+                                {stg.desc}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => setReturnTrackingItem(null)}
+                      className="tarika-btn-outline"
+                      style={{ padding: '0.65rem 1.4rem', fontSize: '0.85rem' }}
+                    >
+                      Close Tracking
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
