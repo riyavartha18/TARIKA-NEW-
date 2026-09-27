@@ -9,7 +9,8 @@ import {
   ArrowLeft,
   AlertCircle,
   CheckCircle2,
-  ChevronRight
+  ChevronRight,
+  Calendar
 } from 'lucide-react';
 import '../../styles/admin-portal.css';
 
@@ -91,7 +92,7 @@ export default function AdminAnalyticsView() {
             </p>
           </div>
 
-          {/* DEMAND FORECASTING CARD (EXACT UI MATCHING SCREENSHOT) */}
+          {/* DEMAND FORECASTING CARD */}
           <div
             className="admin-card"
             style={{
@@ -220,7 +221,7 @@ export default function AdminAnalyticsView() {
                   Demand Forecasting Results
                 </h1>
                 <p style={{ color: '#6B5E63', fontSize: '0.88rem', margin: 0 }}>
-                  Product-wise demand predictions and metrics derived from historical database records.
+                  Next-month product demand predictions derived from historical database records.
                 </p>
               </div>
             </div>
@@ -265,169 +266,210 @@ export default function AdminAnalyticsView() {
           {/* Data Loaded */}
           {!loading && !error && data && (
             <>
-          {/* Metrics Grid */}
-          <div className="admin-metrics-grid" style={{ marginBottom: '1.5rem' }}>
-            <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
-              <p className="admin-metric-title">Filtered Products</p>
-              <p className="admin-metric-val" style={{ fontSize: '1.5rem' }}>{filteredProducts.length}</p>
-              <p className="admin-metric-subtext">Of {totalCount} catalog items</p>
-            </div>
-
-            <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
-              <p className="admin-metric-title" style={{ color: '#059669' }}>High Demand</p>
-              <p className="admin-metric-val" style={{ fontSize: '1.5rem', color: '#059669' }}>{highCount}</p>
-              <p className="admin-metric-subtext">Top velocity products</p>
-            </div>
-
-            <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
-              <p className="admin-metric-title" style={{ color: '#D97706' }}>Medium Demand</p>
-              <p className="admin-metric-val" style={{ fontSize: '1.5rem', color: '#D97706' }}>{medCount}</p>
-              <p className="admin-metric-subtext">Steady order volume</p>
-            </div>
-
-            <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
-              <p className="admin-metric-title" style={{ color: '#DC2626' }}>Low Demand</p>
-              <p className="admin-metric-val" style={{ fontSize: '1.5rem', color: '#DC2626' }}>{lowCount}</p>
-              <p className="admin-metric-subtext">Low velocity products</p>
-            </div>
-          </div>
-
-          {/* Search & Filter Bar */}
-          <div className="admin-card" style={{ marginBottom: '1.5rem', padding: '1.15rem 1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              {/* Search Box */}
-              <div style={{ flex: '1 1 280px', position: 'relative' }}>
-                <Search size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#9E8F94' }} />
-                <input
-                  type="text"
-                  placeholder="Search product name or category..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '0.6rem 0.85rem 0.6rem 2.5rem',
-                    border: '1px solid rgba(216, 114, 126, 0.25)',
-                    borderRadius: '8px',
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    backgroundColor: '#FAF7F5',
-                    boxSizing: 'border-box'
-                  }}
-                />
+              {/* Target Forecast Month Info Banner */}
+              <div style={{
+                background: 'linear-gradient(135deg, #FAF7F5 0%, #FBF1F0 100%)',
+                border: '1px solid rgba(216, 114, 126, 0.25)',
+                borderRadius: '14px',
+                padding: '1.25rem 1.5rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '1rem'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{
+                    width: '44px', height: '44px', borderRadius: '12px',
+                    backgroundColor: '#FDF2F4', color: '#B8505E',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <Calendar size={22} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8E3642', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Target Forecast Period
+                    </span>
+                    <h3 style={{ margin: '0.1rem 0 0', fontSize: '1.25rem', fontWeight: 800, color: '#1F191B', fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}>
+                      Next Month Forecast: <span style={{ color: '#B8505E' }}>{summary.next_forecast_period || summary.next_forecast_month || 'October 2026'}</span>
+                    </h3>
+                  </div>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#6B5E63' }}>
+                  Historical Data up to: <strong style={{ color: '#1F191B' }}>{summary.latest_historical_month || 'September 2026'}</strong>
+                </div>
               </div>
 
-              {/* Demand Tier Filter Pills */}
-              <div style={{ display: 'flex', gap: '0.35rem', background: '#FAF7F5', padding: '0.25rem', borderRadius: '8px', border: '1px solid rgba(216, 114, 126, 0.2)' }}>
-                {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map((lvl) => (
-                  <button
-                    key={lvl}
-                    onClick={() => setDemandFilter(lvl)}
+              {/* Metrics Grid */}
+              <div className="admin-metrics-grid" style={{ marginBottom: '1.5rem' }}>
+                <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
+                  <p className="admin-metric-title">Filtered Products</p>
+                  <p className="admin-metric-val" style={{ fontSize: '1.5rem' }}>{filteredProducts.length}</p>
+                  <p className="admin-metric-subtext">Of {totalCount} catalog items</p>
+                </div>
+
+                <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
+                  <p className="admin-metric-title" style={{ color: '#059669' }}>High Demand</p>
+                  <p className="admin-metric-val" style={{ fontSize: '1.5rem', color: '#059669' }}>{highCount}</p>
+                  <p className="admin-metric-subtext">Top velocity products</p>
+                </div>
+
+                <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
+                  <p className="admin-metric-title" style={{ color: '#D97706' }}>Medium Demand</p>
+                  <p className="admin-metric-val" style={{ fontSize: '1.5rem', color: '#D97706' }}>{medCount}</p>
+                  <p className="admin-metric-subtext">Steady order volume</p>
+                </div>
+
+                <div className="admin-metric-card" style={{ padding: '1.1rem 1.25rem' }}>
+                  <p className="admin-metric-title" style={{ color: '#DC2626' }}>Low Demand</p>
+                  <p className="admin-metric-val" style={{ fontSize: '1.5rem', color: '#DC2626' }}>{lowCount}</p>
+                  <p className="admin-metric-subtext">Low velocity products</p>
+                </div>
+              </div>
+
+              {/* Search & Filter Bar */}
+              <div className="admin-card" style={{ marginBottom: '1.5rem', padding: '1.15rem 1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  {/* Search Box */}
+                  <div style={{ flex: '1 1 280px', position: 'relative' }}>
+                    <Search size={17} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: '#9E8F94' }} />
+                    <input
+                      type="text"
+                      placeholder="Search product name or category..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem 0.85rem 0.6rem 2.5rem',
+                        border: '1px solid rgba(216, 114, 126, 0.25)',
+                        borderRadius: '8px',
+                        fontSize: '0.88rem',
+                        outline: 'none',
+                        backgroundColor: '#FAF7F5',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Demand Tier Filter Pills */}
+                  <div style={{ display: 'flex', gap: '0.35rem', background: '#FAF7F5', padding: '0.25rem', borderRadius: '8px', border: '1px solid rgba(216, 114, 126, 0.2)' }}>
+                    {['ALL', 'HIGH', 'MEDIUM', 'LOW'].map((lvl) => (
+                      <button
+                        key={lvl}
+                        onClick={() => setDemandFilter(lvl)}
+                        style={{
+                          padding: '0.35rem 0.85rem',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          background: demandFilter === lvl ? '#FFFFFF' : 'transparent',
+                          color: demandFilter === lvl ? '#B8505E' : '#6B5E63',
+                          boxShadow: demandFilter === lvl ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {lvl}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Category Dropdown */}
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
                     style={{
-                      padding: '0.35rem 0.85rem',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      borderRadius: '6px',
-                      border: 'none',
-                      cursor: 'pointer',
-                      background: demandFilter === lvl ? '#FFFFFF' : 'transparent',
-                      color: demandFilter === lvl ? '#B8505E' : '#6B5E63',
-                      boxShadow: demandFilter === lvl ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
-                      transition: 'all 0.2s ease'
+                      padding: '0.6rem 0.85rem',
+                      fontSize: '0.85rem',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(216, 114, 126, 0.25)',
+                      backgroundColor: '#FAF7F5',
+                      color: '#1F191B',
+                      outline: 'none'
                     }}
                   >
-                    {lvl}
-                  </button>
-                ))}
+                    <option value="ALL">All Categories ({categoriesList.length})</option>
+                    {categoriesList.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {/* Category Dropdown */}
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                style={{
-                  padding: '0.6rem 0.85rem',
-                  fontSize: '0.85rem',
-                  borderRadius: '8px',
-                  border: '1px solid rgba(216, 114, 126, 0.25)',
-                  backgroundColor: '#FAF7F5',
-                  color: '#1F191B',
-                  outline: 'none'
-                }}
-              >
-                <option value="ALL">All Categories ({categoriesList.length})</option>
-                {categoriesList.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+              {/* Product Demand Predictions Table */}
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Product Key</th>
+                      <th>Product Name</th>
+                      <th>Category</th>
+                      <th>Next Month</th>
+                      <th>Avg Units Sold</th>
+                      <th>Avg Cart Qty</th>
+                      <th>Avg Wishlist</th>
+                      <th>Avg Discount %</th>
+                      <th>Predicted Demand</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredProducts.length > 0 ? (
+                      filteredProducts.map((p) => {
+                        const isHigh = p.predicted_demand === 'High';
+                        const isMed = p.predicted_demand === 'Medium';
+                        const statusStyle = isHigh
+                          ? { backgroundColor: '#ECFDF5', color: '#059669', borderColor: '#A7F3D0' }
+                          : isMed
+                          ? { backgroundColor: '#FFFBEB', color: '#D97706', borderColor: '#FDE68A' }
+                          : { backgroundColor: '#FEF2F2', color: '#DC2626', borderColor: '#FCA5A5' };
 
-          {/* Product Demand Predictions Table */}
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Product Key</th>
-                  <th>Product Name</th>
-                  <th>Category</th>
-                  <th>Avg Units Sold</th>
-                  <th>Avg Cart Qty</th>
-                  <th>Avg Wishlist</th>
-                  <th>Avg Discount %</th>
-                  <th>Predicted Demand</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.length > 0 ? (
-                  filteredProducts.map((p) => {
-                    const isHigh = p.predicted_demand === 'High';
-                    const isMed = p.predicted_demand === 'Medium';
-                    const statusStyle = isHigh
-                      ? { backgroundColor: '#ECFDF5', color: '#059669', borderColor: '#A7F3D0' }
-                      : isMed
-                      ? { backgroundColor: '#FFFBEB', color: '#D97706', borderColor: '#FDE68A' }
-                      : { backgroundColor: '#FEF2F2', color: '#DC2626', borderColor: '#FCA5A5' };
-
-                    return (
-                      <tr key={p.product_key}>
-                        <td>
-                          <code style={{ fontSize: '0.78rem', color: '#9E8F94' }}>#{p.product_key}</code>
-                        </td>
-                        <td>
-                          <strong style={{ color: '#1F191B', fontWeight: 600 }}>{p.product_name}</strong>
-                        </td>
-                        <td>
-                          <span style={{ color: '#6B5E63', fontSize: '0.85rem' }}>{p.category_name}</span>
-                        </td>
-                        <td>
-                          <span style={{ fontWeight: 700, color: '#1F191B' }}>{p.units_sold}</span>
-                        </td>
-                        <td>{p.cart_quantity}</td>
-                        <td>{p.wishlist_count}</td>
-                        <td>{p.discount_percentage}%</td>
-                        <td>
-                          <span className="admin-metric-status" style={statusStyle}>
-                            {p.predicted_demand} Demand
-                          </span>
+                        return (
+                          <tr key={p.product_key}>
+                            <td>
+                              <code style={{ fontSize: '0.78rem', color: '#9E8F94' }}>#{p.product_key}</code>
+                            </td>
+                            <td>
+                              <strong style={{ color: '#1F191B', fontWeight: 600 }}>{p.product_name}</strong>
+                            </td>
+                            <td>
+                              <span style={{ color: '#6B5E63', fontSize: '0.85rem' }}>{p.category_name}</span>
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: 700, color: '#B8505E', fontSize: '0.85rem' }}>
+                                {p.next_month || summary.next_forecast_month || 'October'}
+                              </span>
+                            </td>
+                            <td>
+                              <span style={{ fontWeight: 700, color: '#1F191B' }}>{p.units_sold}</span>
+                            </td>
+                            <td>{p.cart_quantity}</td>
+                            <td>{p.wishlist_count}</td>
+                            <td>{p.discount_percentage}%</td>
+                            <td>
+                              <span className="admin-metric-status" style={statusStyle}>
+                                {p.predicted_demand} Demand
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="9" style={{ textAlign: 'center', padding: '3rem 1rem', color: '#9E8F94' }}>
+                          No products found matching the selected search or category filters.
                         </td>
                       </tr>
-                    );
-                  })
-                ) : (
-                  <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '3rem 1rem', color: '#9E8F94' }}>
-                      No products found matching the selected search or category filters.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', fontSize: '0.82rem', color: '#6B5E63' }}>
-            <span>Showing <strong>{filteredProducts.length}</strong> of {totalCount} catalog products</span>
-            <span>Dataset Source: <code style={{ fontSize: '0.75rem' }}>public.fact_demand</code> (Supabase)</span>
-          </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', fontSize: '0.82rem', color: '#6B5E63' }}>
+                <span>Showing <strong>{filteredProducts.length}</strong> of {totalCount} catalog products</span>
+                <span>Dataset Source: <code style={{ fontSize: '0.75rem' }}>public.fact_demand</code> (Supabase)</span>
+              </div>
             </>
           )}
         </>

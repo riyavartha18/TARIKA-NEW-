@@ -243,7 +243,39 @@ class DecisionTreeEngine:
         and generates product-wise demand predictions along with mathematical metrics.
         """
         cursor = connection.cursor()
-        
+        # Determine latest month in historical data (from fact_demand + dim_time)
+        cursor.execute("""
+            SELECT dt.year, dt.month, dt.month_name
+            FROM fact_demand fd
+            JOIN dim_time dt ON fd.time_key = dt.time_key
+            WHERE dt.year IS NOT NULL AND dt.month IS NOT NULL
+            ORDER BY dt.year DESC, dt.month DESC
+            LIMIT 1
+        """)
+        latest_time_row = cursor.fetchone()
+
+        MONTH_NAMES = [
+            "January", "February", "March", "April", "May", "June", 
+            "July", "August", "September", "October", "November", "December"
+        ]
+
+        if latest_time_row:
+            latest_year, latest_month, latest_month_name = latest_time_row
+            if latest_month == 12:
+                next_month_num = 1
+                next_year = latest_year + 1
+            else:
+                next_month_num = latest_month + 1
+                next_year = latest_year
+            next_month_name = MONTH_NAMES[next_month_num - 1]
+            next_forecast_period = f"{next_month_name} {next_year}"
+            latest_month_period = f"{latest_month_name} {latest_year}"
+        else:
+            next_month_name = "October"
+            next_year = 2026
+            next_forecast_period = "October 2026"
+            latest_month_period = "September 2026"
+
         # 1. Fetch historical demand dataset joined with product and category dimensions
         query = """
             SELECT 
@@ -344,6 +376,8 @@ class DecisionTreeEngine:
                 'cart_quantity': round(d['cart_quantity'], 2),
                 'wishlist_count': round(d['wishlist_count'], 2),
                 'discount_percentage': round(d['discount_percentage'], 2),
+                'next_month': next_month_name,
+                'next_forecast_period': next_forecast_period,
                 'actual_demand': d['target'],
                 'predicted_demand': pred_demand,
                 'is_match': d['target'] == pred_demand
@@ -362,12 +396,18 @@ class DecisionTreeEngine:
             'metadata': {
                 'module_name': 'Demand Forecasting & Prediction',
                 'algorithm': 'Manual Decision Tree Classifier (Entropy & Information Gain)',
+                'latest_historical_month': latest_month_period,
+                'next_forecast_month': next_month_name,
+                'next_forecast_period': next_forecast_period,
                 'total_historical_rows': fact_demand_total_rows,
                 'total_products_analyzed': total_products,
                 'accuracy_percentage': accuracy_percentage
             },
             'summary': {
                 'total_products': total_products,
+                'latest_historical_month': latest_month_period,
+                'next_forecast_month': next_month_name,
+                'next_forecast_period': next_forecast_period,
                 'root_entropy': root_entropy,
                 'demand_cutoffs': {
                     'low_max': round(p33, 2),
