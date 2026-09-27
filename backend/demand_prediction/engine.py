@@ -239,10 +239,14 @@ class DecisionTreeEngine:
     @classmethod
     def run_pipeline(cls):
         """
-        Fetches historical data from fact_demand, trains manual Decision Tree,
-        and generates product-wise demand predictions along with mathematical metrics.
+        Fetches historical monthly demand data from fact_demand + dim_time,
+        constructs supervised transition pairs (Month m -> Month m+1),
+        trains a manual Decision Tree Classifier, and generates genuine next-month
+        demand predictions (High, Medium, Low) for all catalog products based on their
+        latest historical month metrics.
         """
         cursor = connection.cursor()
+        
         # Determine latest month in historical data (from fact_demand + dim_time)
         cursor.execute("""
             SELECT dt.year, dt.month, dt.month_name
@@ -276,22 +280,22 @@ class DecisionTreeEngine:
             next_forecast_period = "October 2026"
             latest_month_period = "September 2026"
 
-        # 1. Fetch historical demand dataset joined with product and category dimensions
+        # 1. Fetch historical demand observations ordered by product and time
         query = """
             SELECT 
                 fd.product_key,
                 COALESCE(dp.product_name, CONCAT('Product #', fd.product_key)) as product_name,
                 COALESCE(dc.category_name, 'General Catalog') as category_name,
-                AVG(fd.units_sold) as avg_units_sold,
-                AVG(fd.cart_quantity) as avg_cart_qty,
-                AVG(fd.wishlist_count) as avg_wishlist,
-                AVG(fd.discount_percentage) as avg_discount,
-                COUNT(fd.demand_key) as observation_count
+                dt.month_start,
+                fd.units_sold,
+                fd.cart_quantity,
+                fd.wishlist_count,
+                fd.discount_percentage
             FROM fact_demand fd
+            JOIN dim_time dt ON fd.time_key = dt.time_key
             LEFT JOIN dim_product dp ON fd.product_key = dp.product_key
             LEFT JOIN dim_category dc ON fd.category_key = dc.category_key
-            GROUP BY fd.product_key, dp.product_name, dc.category_name
-            ORDER BY fd.product_key ASC
+            ORDER BY fd.product_key ASC, dt.month_start ASC
         """
         cursor.execute(query)
         rows = cursor.fetchall()
@@ -302,45 +306,64 @@ class DecisionTreeEngine:
                 'error': 'No historical records found in fact_demand table.'
             }
 
-        # 2. Extract product dataset records
-        dataset = []
+        # 2. Group records by product
+        from collections import defaultdict
+        product_records = defaultdict(list)
         for r in rows:
-            dataset.append({
-                'product_key': r[0],
+            p_key = r[0]
+            product_records[p_key].append({
+                'product_key': p_key,
                 'product_name': r[1],
                 'category_name': r[2],
-                'units_sold': float(r[3] or 0),
-                'cart_quantity': float(r[4] or 0),
-                'wishlist_count': float(r[5] or 0),
-                'discount_percentage': float(r[6] or 0),
-                'observations': int(r[7] or 1)
+                'month_start': r[3],
+                'units_sold': float(r[4] or 0),
+                'cart_quantity': float(r[5] or 0),
+                'wishlist_count': float(r[6] or 0),
+                'discount_percentage': float(r[7] or 0)
             })
 
-        # 3. Create target demand categories (High, Medium, Low) based on historical units_sold percentiles
-        units_values = sorted([d['units_sold'] for d in dataset])
-        n_units = len(units_values)
-        p33 = units_values[n_units // 3]
-        p66 = units_values[(2 * n_units) // 3]
+        # 3. Build supervised training transition pairs: X_m -> Y_{m+1}
+        training_pairs = []
+        for p_key, recs in product_records.items():
+            recs_sorted = sorted(recs, key=lambda x: x['month_start'])
+            for i in range(len(recs_sorted) - 1):
+                curr_rec = recs_sorted[i]
+                next_rec = recs_sorted[i+1]
+                training_pairs.append({
+                    'product_key': p_key,
+                    'product_name': curr_rec['product_name'],
+                    'category_name': curr_rec['category_name'],
+                    'units_sold': curr_rec['units_sold'],
+                    'cart_quantity': curr_rec['cart_quantity'],
+                    'wishlist_count': curr_rec['wishlist_count'],
+                    'discount_percentage': curr_rec['discount_percentage'],
+                    'next_units_sold': next_rec['units_sold']
+                })
 
-        for d in dataset:
-            if d['units_sold'] <= p33:
-                d['target'] = 'Low'
-            elif d['units_sold'] <= p66:
-                d['target'] = 'Medium'
+        # 4. Categorize Next-Month Target Demand (Low, Medium, High)
+        low_max = 2.0
+        medium_max = 6.0
+        
+        for p in training_pairs:
+            u = p['next_units_sold']
+            if u <= low_max:
+                p['target'] = 'Low'
+            elif u <= medium_max:
+                p['target'] = 'Medium'
             else:
-                d['target'] = 'High'
+                p['target'] = 'High'
 
-        targets = [d['target'] for d in dataset]
-        total_products = len(dataset)
+        targets = [p['target'] for p in training_pairs]
+        total_training_samples = len(training_pairs)
 
-        # 4. Calculate Root Entropy
+        # 5. Calculate Root Entropy
         root_entropy = cls.calculate_entropy(targets)
 
-        # 5. Calculate Information Gain for EACH feature at Root
-        feature_gains = cls.calculate_feature_gains_report(dataset, root_entropy)
+        # 6. Calculate Information Gain for EACH feature at Root
+        feature_gains = cls.calculate_feature_gains_report(training_pairs, root_entropy)
 
-        # 6. Determine Best Split at Root
-        best_split_info = cls.find_best_split(dataset, root_entropy)
+        # 7. Determine Best Split at Root
+        best_split_info = cls.find_best_split(training_pairs, root_entropy)
         
         best_split_summary = {
             'feature': best_split_info['feature'],
@@ -350,17 +373,54 @@ class DecisionTreeEngine:
             'explanation': f"The optimal root split is on '{best_split_info['feature'].replace('_', ' ').title()}' at threshold <= {best_split_info['threshold']}, yielding the maximum Information Gain of {best_split_info['information_gain']} bits." if best_split_info['feature'] else "No valid split found."
         }
 
-        # 7. Construct Manual Decision Tree
-        decision_tree = cls.build_tree(dataset, depth=0, max_depth=3)
+        # 8. Construct Manual Decision Tree
+        decision_tree = cls.build_tree(training_pairs, depth=0, max_depth=3)
 
-        # 8. Generate Product-Wise Predicted Demand
+        # 9. Generate Genuine Next-Month Demand Predictions for all catalog products
+        cursor.execute("""
+            SELECT dp.product_key, dp.product_name, COALESCE(dc.category_name, 'General Catalog')
+            FROM dim_product dp
+            LEFT JOIN dim_category dc ON dp.category_id = dc.category_id
+            ORDER BY dp.product_key ASC
+        """)
+        catalog_rows = cursor.fetchall()
+
         product_predictions = []
         high_count = 0
         med_count = 0
         low_count = 0
 
-        for d in dataset:
-            pred_demand = cls.predict_sample(decision_tree, d)
+        for cat_row in catalog_rows:
+            p_key = cat_row[0]
+            p_name = cat_row[1]
+            c_name = cat_row[2]
+
+            if p_key in product_records and product_records[p_key]:
+                recs_sorted = sorted(product_records[p_key], key=lambda x: x['month_start'])
+                latest_rec = recs_sorted[-1]
+                latest_units = round(latest_rec['units_sold'], 2)
+                latest_cart = round(latest_rec['cart_quantity'], 2)
+                latest_wishlist = round(latest_rec['wishlist_count'], 2)
+                latest_discount = round(latest_rec['discount_percentage'], 2)
+                sample = {
+                    'units_sold': latest_rec['units_sold'],
+                    'cart_quantity': latest_rec['cart_quantity'],
+                    'wishlist_count': latest_rec['wishlist_count'],
+                    'discount_percentage': latest_rec['discount_percentage']
+                }
+            else:
+                latest_units = 0.0
+                latest_cart = 0.0
+                latest_wishlist = 0.0
+                latest_discount = 0.0
+                sample = {
+                    'units_sold': 0.0,
+                    'cart_quantity': 0.0,
+                    'wishlist_count': 0.0,
+                    'discount_percentage': 0.0
+                }
+
+            pred_demand = cls.predict_sample(decision_tree, sample)
             if pred_demand == 'High':
                 high_count += 1
             elif pred_demand == 'Medium':
@@ -369,25 +429,30 @@ class DecisionTreeEngine:
                 low_count += 1
 
             product_predictions.append({
-                'product_key': d['product_key'],
-                'product_name': d['product_name'],
-                'category_name': d['category_name'],
-                'units_sold': round(d['units_sold'], 2),
-                'cart_quantity': round(d['cart_quantity'], 2),
-                'wishlist_count': round(d['wishlist_count'], 2),
-                'discount_percentage': round(d['discount_percentage'], 2),
+                'product_key': p_key,
+                'product_name': p_name,
+                'category_name': c_name,
+                'latest_historical_month': latest_month_period,
+                'latest_units_sold': latest_units,
+                'latest_cart_quantity': latest_cart,
+                'latest_wishlist_count': latest_wishlist,
+                'latest_discount_percentage': latest_discount,
+                'units_sold': latest_units,
+                'cart_quantity': latest_cart,
+                'wishlist_count': latest_wishlist,
+                'discount_percentage': latest_discount,
                 'next_month': next_month_name,
                 'next_forecast_period': next_forecast_period,
-                'actual_demand': d['target'],
-                'predicted_demand': pred_demand,
-                'is_match': d['target'] == pred_demand
+                'predicted_demand': pred_demand
             })
 
-        # Calculate accuracy score
-        matches = sum(1 for p in product_predictions if p['is_match'])
-        accuracy_percentage = round((matches / total_products) * 100, 2) if total_products > 0 else 100.0
+        total_products = len(product_predictions)
 
-        # Also get total row count from fact_demand for metadata
+        # Calculate accuracy score on historical transition dataset
+        transition_matches = sum(1 for p in training_pairs if cls.predict_sample(decision_tree, p) == p['target'])
+        accuracy_percentage = round((transition_matches / total_training_samples) * 100, 2) if total_training_samples > 0 else 100.0
+
+        # Total row count from fact_demand for metadata
         cursor.execute("SELECT COUNT(*) FROM fact_demand")
         fact_demand_total_rows = cursor.fetchone()[0]
 
@@ -400,6 +465,7 @@ class DecisionTreeEngine:
                 'next_forecast_month': next_month_name,
                 'next_forecast_period': next_forecast_period,
                 'total_historical_rows': fact_demand_total_rows,
+                'total_training_pairs': total_training_samples,
                 'total_products_analyzed': total_products,
                 'accuracy_percentage': accuracy_percentage
             },
@@ -410,8 +476,8 @@ class DecisionTreeEngine:
                 'next_forecast_period': next_forecast_period,
                 'root_entropy': root_entropy,
                 'demand_cutoffs': {
-                    'low_max': round(p33, 2),
-                    'medium_max': round(p66, 2)
+                    'low_max': low_max,
+                    'medium_max': medium_max
                 },
                 'predicted_distribution': {
                     'High': high_count,
@@ -427,7 +493,7 @@ class DecisionTreeEngine:
             'entropy': {
                 'root_entropy': root_entropy,
                 'formula': 'H(S) = - sum( p_i * log2(p_i) )',
-                'description': f"Root dataset entropy is {root_entropy} bits across 3 target demand classes (High, Medium, Low)."
+                'description': f"Root dataset entropy is {root_entropy} bits across 3 target next-month demand classes (High, Medium, Low)."
             },
             'information_gains': feature_gains,
             'best_split': best_split_summary,
@@ -438,3 +504,4 @@ class DecisionTreeEngine:
     @classmethod
     def calculate_feature_gains_report(cls, dataset, root_entropy):
         return cls.evaluate_feature_gains(dataset, root_entropy)
+

@@ -154,7 +154,7 @@ export default function AdminAnalyticsView() {
 
             {/* Description */}
             <p style={{ color: '#6B5E63', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 1.75rem 0' }}>
-              Classifies catalog products into High, Medium, and Low demand tiers based on historical metrics ( <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>units_sold</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>cart_quantity</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>wishlist_count</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>discount_percentage</code> ).
+              Predicts next-month demand tiers (High, Medium, Low) for catalog products based on historical monthly transitions and features ( <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>units_sold</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>cart_quantity</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>wishlist_count</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>discount_percentage</code> ) using a supervised Decision Tree Classifier.
             </p>
 
             {/* Demand Forecasting Visual Banner */}
@@ -406,12 +406,12 @@ export default function AdminAnalyticsView() {
                       <th>Product Key</th>
                       <th>Product Name</th>
                       <th>Category</th>
-                      <th>Next Month</th>
-                      <th>Avg Units Sold</th>
-                      <th>Avg Cart Qty</th>
-                      <th>Avg Wishlist</th>
-                      <th>Avg Discount %</th>
-                      <th>Predicted Demand</th>
+                      <th>Forecast Month</th>
+                      <th>Latest Month Sold</th>
+                      <th>Latest Cart Qty</th>
+                      <th>Latest Wishlist</th>
+                      <th>Discount %</th>
+                      <th>Predicted Next-Month Demand</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -438,15 +438,15 @@ export default function AdminAnalyticsView() {
                             </td>
                             <td>
                               <span style={{ fontWeight: 700, color: '#B8505E', fontSize: '0.85rem' }}>
-                                {p.next_month || summary.next_forecast_month || 'October'}
+                                {p.next_forecast_period || p.next_month || summary.next_forecast_month || 'October 2026'}
                               </span>
                             </td>
                             <td>
-                              <span style={{ fontWeight: 700, color: '#1F191B' }}>{p.units_sold}</span>
+                              <span style={{ fontWeight: 700, color: '#1F191B' }}>{p.latest_units_sold ?? p.units_sold}</span>
                             </td>
-                            <td>{p.cart_quantity}</td>
-                            <td>{p.wishlist_count}</td>
-                            <td>{p.discount_percentage}%</td>
+                            <td>{p.latest_cart_quantity ?? p.cart_quantity}</td>
+                            <td>{p.latest_wishlist_count ?? p.wishlist_count}</td>
+                            <td>{p.latest_discount_percentage ?? p.discount_percentage}%</td>
                             <td>
                               <span className="admin-metric-status" style={statusStyle}>
                                 {p.predicted_demand} Demand
