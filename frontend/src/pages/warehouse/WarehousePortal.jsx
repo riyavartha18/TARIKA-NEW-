@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../auth/AuthContext';
+import StockToBeOrdered from '../../features/stockToBeOrdered/StockToBeOrdered';
 import {
   getCategories,
   getProducts,
@@ -1386,7 +1387,7 @@ const inputStyle = {
 
 
 export default function WarehousePortal() {
-  const { user, warehouseId, logout } = useAuth();
+  const { user, warehouseId, logout, token } = useAuth();
 
   // Active navigation tab state: default to 'products'
   const [activeTab, setActiveTab] = useState('products');
@@ -1719,6 +1720,10 @@ export default function WarehousePortal() {
     { id: 'returns', label: 'Returns', icon: <RotateCcw size={18} />, count: returnsTotalCount || 1177 },
   ];
 
+  const aiNavItems = [
+    { id: 'stock-to-be-ordered', label: 'Stock to Be Ordered', icon: <Sparkles size={18} />, count: 'OLS' },
+  ];
+
   // Status Badge Helper Components
   const renderOrderStatusBadge = (statusStr) => {
     const st = (statusStr || '').toLowerCase();
@@ -2046,6 +2051,7 @@ export default function WarehousePortal() {
             Management Modules
           </div>
 
+          {/* Management Modules Nav */}
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
@@ -2087,6 +2093,53 @@ export default function WarehousePortal() {
                     {item.count}
                   </span>
                 )}
+              </button>
+            );
+          })}
+
+          {/* AI Analysis Section */}
+          <div style={{ padding: '1.25rem 1rem 0.25rem', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8E3642' }}>
+            AI Analysis
+          </div>
+          {aiNavItems.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.85rem 1.15rem',
+                  borderRadius: '14px',
+                  border: '1px solid',
+                  borderColor: isActive ? 'rgba(216, 114, 126, 0.35)' : 'transparent',
+                  backgroundColor: isActive ? '#FFFFFF' : 'transparent',
+                  color: isActive ? '#B8505E' : '#6B5E63',
+                  fontWeight: isActive ? 700 : 500,
+                  fontSize: '0.9rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.25s ease',
+                  boxShadow: isActive ? '0 6px 20px rgba(184, 80, 94, 0.08)' : 'none'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ color: isActive ? '#D8727E' : '#9E8F94' }}>{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+                <span
+                  style={{
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '9999px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    backgroundColor: isActive ? 'rgba(216, 114, 126, 0.12)' : 'rgba(0, 0, 0, 0.05)',
+                    color: isActive ? '#B8505E' : '#6B5E63'
+                  }}
+                >
+                  {item.count}
+                </span>
               </button>
             );
           })}
@@ -3418,6 +3471,11 @@ export default function WarehousePortal() {
             </div>
           )}
 
+          {/* TAB: STOCK TO BE ORDERED (AI Analysis) */}
+          {activeTab === 'stock-to-be-ordered' && (
+            <StockToBeOrdered token={token} />
+          )}
+
           {/* TAB 6: DASHBOARD OVERVIEW */}
           {activeTab === 'dashboard' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -3478,6 +3536,7 @@ export default function WarehousePortal() {
               </div>
             </div>
           )}
+
 
         </main>
       </div>

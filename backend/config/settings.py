@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'orders.apps.OrdersConfig',
     'delivery.apps.DeliveryConfig',
     'demand_prediction.apps.DemandPredictionConfig',
+    'stock_to_be_ordered.apps.StockToBeOrderedConfig',
 ]
 
 MIDDLEWARE = [

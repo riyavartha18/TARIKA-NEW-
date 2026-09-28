@@ -1275,6 +1275,40 @@ export async function getDemandPredictionAnalytics(token, params = {}) {
   }
 }
 
+/* ==========================================================================
+   STOCK TO BE ORDERED API HELPERS  (Warehouse Manager only)
+   ========================================================================== */
 
+/**
+ * Fetch next-month Stock to Be Ordered forecast via OLS regression pipeline.
+ * Access: Warehouse Manager only.
+ *
+ * @param {string} token  - Bearer token
+ * @param {Object} params - Optional filters: { search, category, status }
+ */
+export async function getStockToBeOrdered(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'ALL') query.append('category', params.category);
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
 
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/stock-to-be-ordered/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || data.detail || 'Failed to fetch stock forecast.',
+      };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching stock forecast.' };
+  }
+}

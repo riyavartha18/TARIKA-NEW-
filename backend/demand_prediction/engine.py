@@ -240,7 +240,7 @@ class DecisionTreeEngine:
     def run_pipeline(cls):
         """
         Fetches historical monthly demand data from fact_demand + dim_time,
-        joins monthly aggregated notify_me_count from public.notify table,
+        reads notify_me_count directly from fact_demand,
         constructs supervised transition pairs (Month m -> Month m+1),
         trains a manual Decision Tree Classifier, and generates genuine next-month
         demand predictions (High, Medium, Low) for all catalog products based on their
@@ -281,7 +281,7 @@ class DecisionTreeEngine:
             next_forecast_period = "October 2026"
             latest_month_period = "September 2026"
 
-        # 1. Fetch historical demand observations joined with monthly aggregated Notify Me count
+        # 1. Fetch historical demand observations (notify_me_count comes directly from fact_demand)
         query = """
             SELECT 
                 fd.product_key,
@@ -292,21 +292,11 @@ class DecisionTreeEngine:
                 fd.cart_quantity,
                 fd.wishlist_count,
                 fd.discount_percentage,
-                COALESCE(nm.notify_me_count, 0) as notify_me_count
+                COALESCE(fd.notify_me_count, 0) as notify_me_count
             FROM fact_demand fd
             JOIN dim_time dt ON fd.time_key = dt.time_key
             LEFT JOIN dim_product dp ON fd.product_key = dp.product_key
             LEFT JOIN dim_category dc ON fd.category_key = dc.category_key
-            LEFT JOIN (
-                SELECT 
-                    dp.product_key,
-                    DATE_TRUNC('month', CAST(n.notify_date AS DATE))::date as month_start,
-                    COUNT(*) as notify_me_count
-                FROM notify n
-                JOIN dim_product dp ON n.product_id = dp.product_id
-                WHERE n.notify_date IS NOT NULL AND n.notify_date != ''
-                GROUP BY dp.product_key, DATE_TRUNC('month', CAST(n.notify_date AS DATE))::date
-            ) nm ON fd.product_key = nm.product_key AND dt.month_start = nm.month_start
             ORDER BY fd.product_key ASC, dt.month_start ASC
         """
         cursor.execute(query)

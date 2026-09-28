@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/admin/', include(('admin.urls', 'admin_module'), namespace='admin_module')),
     path('api/delivery/', include(('delivery.urls', 'delivery'), namespace='delivery')),
     path('api/demand-prediction/', include(('demand_prediction.urls', 'demand_prediction'), namespace='demand_prediction')),
+    path('api/stock-to-be-ordered/', include(('stock_to_be_ordered.urls', 'stock_to_be_ordered'), namespace='stock_to_be_ordered')),
 ]
 
 # Reload URLconf: registered warehouse app routes

@@ -6,7 +6,6 @@ import AdminDashboardView from './AdminDashboardView';
 import AdminStaffView from './AdminStaffView';
 import AdminWarehouseView from './AdminWarehouseView';
 import AdminProductView from './AdminProductView';
-import AdminOrderView from './AdminOrderView';
 import AdminAnalyticsView from './AdminAnalyticsView';
 import AdminSectionPlaceholder from './AdminSectionPlaceholder';
 import '../../styles/tarika.css';
@@ -74,16 +73,15 @@ export default function AdminPortal() {
         {/* Main Section Content */}
         <main className="admin-main-content">
           <Routes>
-            <Route index element={<AdminDashboardView onNavigateSection={handleSelectSection} />} />
-            <Route path="dashboard" element={<AdminDashboardView onNavigateSection={handleSelectSection} />} />
+            <Route index element={<AdminDashboardView />} />
+            <Route path="dashboard" element={<AdminDashboardView />} />
             <Route path="staff" element={<AdminStaffView />} />
             <Route path="warehouses" element={<AdminWarehouseView />} />
             <Route path="products" element={<AdminProductView />} />
-            <Route path="orders" element={<AdminOrderView />} />
             <Route path="analytics" element={<AdminAnalyticsView />} />
             <Route path="analysis" element={<AdminAnalyticsView />} />
             {ADMIN_NAV_ITEMS.filter(
-              (item) => !['dashboard', 'staff', 'warehouses', 'products', 'orders', 'analytics', 'analysis'].includes(item.id)
+              (item) => !['dashboard', 'staff', 'warehouses', 'products', 'analytics', 'analysis'].includes(item.id)
             ).map((item) => (
               <Route
                 key={item.id}

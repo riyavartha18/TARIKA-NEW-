@@ -4,10 +4,6 @@ import {
   Users,
   Building2,
   Package,
-  ShoppingBag,
-  Truck,
-  RotateCcw,
-  UserCheck,
   BarChart3,
   ShieldCheck,
   ChevronRight,
@@ -19,10 +15,6 @@ export const ADMIN_NAV_ITEMS = [
   { id: 'staff', label: 'Staff Management', icon: Users },
   { id: 'warehouses', label: 'Warehouses', icon: Building2 },
   { id: 'products', label: 'Products', icon: Package },
-  { id: 'orders', label: 'Orders', icon: ShoppingBag },
-  { id: 'deliveries', label: 'Deliveries', icon: Truck },
-  { id: 'returns', label: 'Returns', icon: RotateCcw },
-  { id: 'customers', label: 'Customers', icon: UserCheck },
   { id: 'analytics', label: 'Admin Analysis', icon: BarChart3 },
 ];
 

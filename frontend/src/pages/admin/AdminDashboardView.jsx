@@ -12,7 +12,6 @@ import {
   Sparkles,
   TrendingUp,
   AlertTriangle,
-  ArrowRight,
   RefreshCw,
   Clock,
   CheckCircle2,
@@ -23,7 +22,7 @@ import {
   Warehouse as WarehouseIcon,
 } from 'lucide-react';
 
-export default function AdminDashboardView({ onNavigateSection }) {
+export default function AdminDashboardView() {
   const { user, token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -354,15 +353,6 @@ export default function AdminDashboardView({ onNavigateSection }) {
               <ShoppingBag size={18} color="#B8505E" />
               <h3 className="admin-card-title">Recent System Orders</h3>
             </div>
-            {onNavigateSection && (
-              <button
-                onClick={() => onNavigateSection('orders')}
-                className="admin-card-action-btn"
-              >
-                <span>View All Orders</span>
-                <ArrowRight size={14} />
-              </button>
-            )}
           </div>
 
           {recentOrders.length === 0 ? (
