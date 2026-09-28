@@ -686,3 +686,128 @@ class AdminOrderDetailView(APIView):
             )
         serializer = WarehouseOrderDetailSerializer(order)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class AdminCustomerListView(APIView):
+    """
+    GET /api/admin/customers/
+    Admin-only endpoint for system-wide customer management.
+    Returns paginated customer list + summary KPIs.
+    Supports search by name, email, phone, city.
+    """
+    permission_classes = [IsAuthenticatedUser, IsAdmin]
+
+    def get(self, request):
+        search = request.query_params.get('search')
+        status_param = request.query_params.get('status')  # 'active' | 'inactive' | 'ALL'
+
+        qs = Customer.objects.all()
+
+        if status_param and status_param.upper() != 'ALL':
+            if status_param.lower() in ('active', 'true'):
+                qs = qs.filter(is_active=True)
+            elif status_param.lower() in ('inactive', 'false'):
+                qs = qs.filter(is_active=False)
+
+        if search:
+            q = search.strip()
+            qs = qs.filter(
+                Q(full_name__icontains=q) |
+                Q(email__icontains=q) |
+                Q(city__icontains=q) |
+                Q(state__icontains=q)
+            )
+
+        qs = qs.order_by('-registration_date', '-created_at', 'full_name')
+
+        # Summary KPIs (always on full unfiltered table)
+        total_customers = Customer.objects.count()
+        active_customers = Customer.objects.filter(is_active=True).count()
+        inactive_customers = Customer.objects.filter(is_active=False).count()
+
+        paginator = StandardWarehousePagination()
+        page = paginator.paginate_queryset(qs, request)
+
+        def serialize_customer(c):
+            return {
+                'customer_id': c.customer_id,
+                'full_name': c.full_name or 'Unknown',
+                'email': c.email or '',
+                'phone': str(c.phone) if c.phone else '',
+                'gender': c.gender or '',
+                'date_of_birth': c.date_of_birth or '',
+                'city': c.city or '',
+                'state': c.state or '',
+                'country': c.country or '',
+                'postal_code': str(c.postal_code) if c.postal_code else '',
+                'registration_date': c.registration_date or c.created_at or '',
+                'is_active': c.is_active if c.is_active is not None else True,
+            }
+
+        metrics = {
+            'total_customers': total_customers,
+            'active_customers': active_customers,
+            'inactive_customers': inactive_customers,
+        }
+
+        if page is not None:
+            customers_data = [serialize_customer(c) for c in page]
+            response = paginator.get_paginated_response(customers_data)
+            response.data['metrics'] = metrics
+            return response
+
+        customers_data = [serialize_customer(c) for c in qs]
+        return Response({'results': customers_data, 'metrics': metrics}, status=status.HTTP_200_OK)
+
+
+class AdminCustomerDetailView(APIView):
+    """
+    GET /api/admin/customers/<customer_id>/
+    Fetch a single customer record with order summary.
+    """
+    permission_classes = [IsAuthenticatedUser, IsAdmin]
+
+    def get(self, request, customer_id):
+        try:
+            c = Customer.objects.get(customer_id=customer_id)
+        except Customer.DoesNotExist:
+            return Response(
+                {'detail': f'Customer "{customer_id}" not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        # Order summary for this customer
+        customer_orders = Order.objects.filter(customer_id=customer_id)
+        total_orders = customer_orders.count()
+        total_spent = customer_orders.exclude(
+            order_status__iexact='Cancelled'
+        ).aggregate(total=Coalesce(Sum('total_amount'), 0.0))['total'] or 0.0
+
+        recent_orders = []
+        for o in customer_orders.order_by('-order_date', '-created_at')[:5]:
+            recent_orders.append({
+                'order_id': o.order_id,
+                'order_date': o.order_date or '',
+                'order_status': o.order_status or '',
+                'total_amount': float(o.total_amount or 0),
+            })
+
+        return Response({
+            'customer_id': c.customer_id,
+            'full_name': c.full_name or 'Unknown',
+            'email': c.email or '',
+            'phone': str(c.phone) if c.phone else '',
+            'gender': c.gender or '',
+            'date_of_birth': c.date_of_birth or '',
+            'city': c.city or '',
+            'state': c.state or '',
+            'country': c.country or '',
+            'postal_code': str(c.postal_code) if c.postal_code else '',
+            'registration_date': c.registration_date or c.created_at or '',
+            'is_active': c.is_active if c.is_active is not None else True,
+            'order_summary': {
+                'total_orders': total_orders,
+                'total_spent': round(float(total_spent), 2),
+            },
+            'recent_orders': recent_orders,
+        }, status=status.HTTP_200_OK)

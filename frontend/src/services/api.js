@@ -618,6 +618,23 @@ export async function getProductDetail(productId) {
 }
 
 /**
+ * Fetch Apriori-based Frequently Bought Together product recommendations.
+ */
+export async function getProductRecommendations(productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/recommendations/${productId}/`);
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch recommendations' };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching recommendations' };
+  }
+}
+
+
+/**
  * Fetch New Arrivals.
  */
 export async function getNewArrivals(limit = 10) {
@@ -1092,14 +1109,17 @@ export async function createStaffMember(token, payload) {
 /**
  * Toggle staff active status (activate / deactivate).
  */
-export async function toggleStaffStatus(token, employeeId) {
+export async function toggleStaffStatus(token, employeeId, targetStatus = null) {
   try {
     const headers = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    const body = targetStatus !== null ? JSON.stringify({ is_active: targetStatus }) : undefined;
+
     const response = await fetch(`${API_BASE_URL}/api/admin/staff/${employeeId}/toggle-status/`, {
-      method: 'POST',
+      method: 'PATCH',
       headers,
+      body,
     });
     const data = await response.json();
     if (!response.ok) {
@@ -1218,7 +1238,10 @@ export async function getAdminOrders(token, params = {}) {
     return {
       success: true,
       metrics: data.metrics || {},
-      orders: data.orders || [],
+      orders: data.results || data.orders || [],
+      count: data.count,
+      total_pages: data.total_pages,
+      current_page: data.current_page,
     };
   } catch (err) {
     return { success: false, error: 'Network error fetching admin orders.' };
@@ -1244,5 +1267,151 @@ export async function getAdminOrderDetail(token, orderId) {
   }
 }
 
+/**
+ * Fetch system customers for admin oversight.
+ */
+export async function getAdminCustomers(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
+    if (params.page) query.append('page', params.page);
 
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/customers/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch customers.' };
+    }
+    return {
+      success: true,
+      metrics: data.metrics || {},
+      customers: data.results || [],
+      count: data.count,
+      total_pages: data.total_pages,
+      current_page: data.current_page,
+    };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching admin customers.' };
+  }
+}
+
+/**
+ * Fetch a single customer's detailed record.
+ */
+export async function getAdminCustomerDetail(token, customerId) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const url = `${API_BASE_URL}/api/admin/customers/${encodeURIComponent(customerId)}/`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch customer detail.' };
+    }
+    return { success: true, customer: data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching customer detail.' };
+  }
+}
+
+/* ==========================================================================
+   DATA MINING & DEMAND PREDICTION API HELPERS
+   ========================================================================== */
+
+/**
+ * Fetch Demand Prediction analytics & Decision Tree results.
+ */
+export async function getDemandPredictionAnalytics(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.demand_level && params.demand_level !== 'ALL') query.append('demand_level', params.demand_level);
+    if (params.category && params.category !== 'ALL') query.append('category', params.category);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/demand-prediction/analytics/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || data.detail || 'Failed to fetch demand prediction analytics.' };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching demand prediction analytics.' };
+  }
+}
+
+/* ==========================================================================
+   STOCK TO BE ORDERED API HELPERS  (Warehouse Manager only)
+   ========================================================================== */
+
+/**
+ * Fetch next-month Stock to Be Ordered forecast via OLS regression pipeline.
+ * Access: Warehouse Manager only.
+ *
+ * @param {string} token  - Bearer token
+ * @param {Object} params - Optional filters: { search, category, status }
+ */
+export async function getStockToBeOrdered(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'ALL') query.append('category', params.category);
+    if (params.status && params.status !== 'ALL') query.append('status', params.status);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/stock-to-be-ordered/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.error || data.detail || 'Failed to fetch stock forecast.',
+      };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching stock forecast.' };
+  }
+}
+
+/**
+ * Fetch Slow-Moving Inventory analysis data.
+ */
+export async function getSlowMovingInventory(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.movement_status && params.movement_status !== 'ALL') query.append('movement_status', params.movement_status);
+    if (params.warehouse_id && params.warehouse_id !== 'ALL') query.append('warehouse_id', params.warehouse_id);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/demand-prediction/slow-inventory/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || data.detail || 'Failed to fetch slow-moving inventory data.' };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching slow-moving inventory data.' };
+  }
+}

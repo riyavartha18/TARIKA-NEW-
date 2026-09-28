@@ -1075,4 +1075,33 @@
   }
 }
 
+/* ========================================================
+   FREQUENTLY BOUGHT TOGETHER SECTION
+   ======================================================== */
+.frequently-bought-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.frequently-bought-grid .tarika-product-card {
+  width: 260px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .frequently-bought-grid {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.75rem;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  .frequently-bought-grid .tarika-product-card {
+    width: 220px;
+    scroll-snap-align: start;
+  }
+}
+
+
 

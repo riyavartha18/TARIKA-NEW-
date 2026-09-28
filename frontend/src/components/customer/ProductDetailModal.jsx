@@ -17,13 +17,15 @@ import {
 } from 'lucide-react';
 import { useCustomer } from '../../context/CustomerContext';
 import { useAuth } from '../../auth/AuthContext';
-import { submitProductReview } from '../../services/api';
+import ProductCard from './ProductCard';
+import { submitProductReview, getProductRecommendations, getProductDetail } from '../../services/api';
 
 export default function ProductDetailModal() {
   const { token, user, isAuthenticated } = useAuth();
   const {
     activeModalProduct,
     closeProductDetail,
+    openProductDetail,
     isWishlisted,
     toggleWishlist,
     addToBag,
@@ -77,6 +79,150 @@ export default function ProductDetailModal() {
     setReviewError('');
     setReviewSuccess('');
   }, [activeModalProduct, user]);
+
+  // Frequently Bought Together recommendations state
+  const [recommendations, setRecommendations] = useState([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+
+  const currentProductId = activeModalProduct
+    ? String(activeModalProduct.product_id || activeModalProduct.id || '').trim()
+    : '';
+
+  useEffect(() => {
+    if (!currentProductId) {
+      setRecommendations([]);
+      setLoadingRecommendations(false);
+      return;
+    }
+
+    let isMounted = true;
+    setLoadingRecommendations(true);
+
+    getProductRecommendations(currentProductId)
+      .then(async (res) => {
+        if (!isMounted) return;
+
+        if (res && res.success && Array.isArray(res.recommendations) && res.recommendations.length > 0) {
+          const currentPName = String(
+            activeModalProduct?.product_name ||
+            activeModalProduct?.name ||
+            res.product_name ||
+            ''
+          ).trim().toLowerCase();
+
+          // Collect candidate recommendation objects and their product IDs
+          const candidates = [];
+          const seenIds = new Set();
+          if (currentProductId) {
+            seenIds.add(currentProductId);
+          }
+
+          for (const item of res.recommendations) {
+            // Find recommended product ID from all possible response keys
+            const recObj = item.recommended_product || {};
+            const recId = String(
+              recObj.product_id ||
+              recObj.id ||
+              item.recommended_product_id ||
+              item.product_id ||
+              (item.matching_products && item.matching_products[0]?.product_id) ||
+              ''
+            ).trim();
+
+            const recName = String(
+              recObj.product_name ||
+              recObj.name ||
+              item.frequently_bought_with ||
+              item.product_name ||
+              ''
+            ).trim().toLowerCase();
+
+            // Filter out current product by ID and by name
+            if (recId && recId === currentProductId) continue;
+            if (currentPName && recName && recName === currentPName) continue;
+
+            if (recId && !seenIds.has(recId)) {
+              seenIds.add(recId);
+              candidates.push({
+                recId,
+                rawItem: item,
+                rawProduct: recObj,
+              });
+            }
+          }
+
+          if (candidates.length === 0) {
+            if (isMounted) setRecommendations([]);
+            return;
+          }
+
+          // Fetch full product details using existing catalog API service
+          const resolvedProducts = await Promise.all(
+            candidates.map(async ({ recId, rawItem, rawProduct }) => {
+              try {
+                const detailRes = await getProductDetail(recId);
+                if (detailRes && detailRes.success && detailRes.product) {
+                  return {
+                    ...rawProduct,
+                    ...detailRes.product,
+                    confidence: rawItem.confidence,
+                    lift: rawItem.lift,
+                    support: rawItem.support,
+                  };
+                }
+              } catch (e) {
+                console.warn('Could not fetch detail for recommendation:', recId);
+              }
+              // Fallback to recommended_product info from recommendations endpoint
+              return {
+                ...rawProduct,
+                product_id: recId,
+                confidence: rawItem.confidence,
+                lift: rawItem.lift,
+                support: rawItem.support,
+                total_stock: rawProduct.total_stock ?? 10,
+                is_in_stock: rawProduct.is_active !== false,
+              };
+            })
+          );
+
+          if (!isMounted) return;
+
+          // Double check filter against currentProductId in case activeModalProduct updated
+          const finalList = resolvedProducts.filter((p) => {
+            const pid = String(p.product_id || p.id || '').trim();
+            const pname = String(p.product_name || p.name || '').trim().toLowerCase();
+            return pid !== currentProductId && (!currentPName || pname !== currentPName);
+          });
+
+          setRecommendations(finalList);
+        } else {
+          setRecommendations([]);
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.error('Failed to load product recommendations', err);
+        setRecommendations([]);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoadingRecommendations(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentProductId]);
+
+  const handleRecommendationClick = (recProduct) => {
+    const modalContent = document.querySelector('.modal-content-card');
+    if (modalContent) {
+      modalContent.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    openProductDetail(recProduct);
+  };
 
   if (!activeModalProduct) return null;
 
@@ -641,6 +787,83 @@ export default function ProductDetailModal() {
             </div>
           </div>
         </div>
+
+        {/* ========================================================
+            FREQUENTLY BOUGHT TOGETHER SECTION
+            ======================================================== */}
+        {loadingRecommendations ? (
+          <div
+            style={{
+              marginTop: '2.5rem',
+              paddingTop: '2rem',
+              borderTop: '1px solid #F0E2E0',
+            }}
+          >
+            <div
+              style={{
+                width: '240px',
+                height: '24px',
+                borderRadius: '6px',
+                backgroundColor: '#F5ECEB',
+                marginBottom: '1.25rem',
+                animation: 'pulseGlow 2s infinite ease-in-out',
+              }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                gap: '1.5rem',
+                overflowX: 'hidden',
+              }}
+            >
+              {[1, 2].map((n) => (
+                <div
+                  key={n}
+                  style={{
+                    width: '260px',
+                    height: '350px',
+                    borderRadius: '18px',
+                    backgroundColor: '#F5ECEB',
+                    flexShrink: 0,
+                    animation: 'pulseGlow 2s infinite ease-in-out',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : recommendations.length > 0 ? (
+          <section
+            style={{
+              marginTop: '2.5rem',
+              paddingTop: '2rem',
+              borderTop: '1px solid #F0E2E0',
+            }}
+            aria-label="Frequently Bought Together"
+          >
+            <h3
+              style={{
+                margin: '0 0 1.5rem 0',
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: '#1F191B',
+                letterSpacing: '-0.01em',
+              }}
+            >
+              Frequently Bought Together
+            </h3>
+
+            <div className="frequently-bought-grid">
+              {recommendations.map((recProd) => (
+                <ProductCard
+                  key={recProd.product_id || recProd.id}
+                  product={recProd}
+                  onCardClick={() => handleRecommendationClick(recProd)}
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* ========================================================
             CUSTOMER REVIEWS SECTION
