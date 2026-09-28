@@ -12,7 +12,7 @@ class DemandPredictionAnalyticsView(APIView):
     Provides:
     - Executive summary & metrics
     - Entropy (Shannon Entropy calculation)
-    - Information Gain for each feature (units_sold, cart_quantity, wishlist_count, discount_percentage)
+    - Information Gain for each feature (units_sold, cart_quantity, wishlist_count, discount_percentage, notify_me_count)
     - Best Split parameters (feature, threshold, Information Gain)
     - Decision Tree visual structure
     - Product-wise demand predictions (High, Medium, Low)

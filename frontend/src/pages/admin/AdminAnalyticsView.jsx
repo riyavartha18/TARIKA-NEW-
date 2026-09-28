@@ -154,7 +154,7 @@ export default function AdminAnalyticsView() {
 
             {/* Description */}
             <p style={{ color: '#6B5E63', fontSize: '0.95rem', lineHeight: 1.6, margin: '0 0 1.75rem 0' }}>
-              Predicts next-month demand tiers (High, Medium, Low) for catalog products based on historical monthly transitions and features ( <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>units_sold</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>cart_quantity</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>wishlist_count</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>discount_percentage</code> ) using a supervised Decision Tree Classifier.
+              Predicts next-month demand tiers (High, Medium, Low) for catalog products based on historical monthly transitions and features ( <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>units_sold</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>cart_quantity</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>wishlist_count</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>discount_percentage</code> , <code style={{ background: '#FAF7F5', border: '1px solid rgba(216,114,126,0.15)', padding: '0.15rem 0.45rem', borderRadius: '5px', color: '#1F191B', fontSize: '0.85rem' }}>notify_me_count</code> ) using a supervised Decision Tree Classifier.
             </p>
 
             {/* Demand Forecasting Visual Banner */}
@@ -410,6 +410,7 @@ export default function AdminAnalyticsView() {
                       <th>Latest Month Sold</th>
                       <th>Latest Cart Qty</th>
                       <th>Latest Wishlist</th>
+                      <th>Latest Notify Me</th>
                       <th>Discount %</th>
                       <th>Predicted Next-Month Demand</th>
                     </tr>
@@ -446,6 +447,7 @@ export default function AdminAnalyticsView() {
                             </td>
                             <td>{p.latest_cart_quantity ?? p.cart_quantity}</td>
                             <td>{p.latest_wishlist_count ?? p.wishlist_count}</td>
+                            <td>{p.latest_notify_me_count ?? p.notify_me_count ?? 0}</td>
                             <td>{p.latest_discount_percentage ?? p.discount_percentage}%</td>
                             <td>
                               <span className="admin-metric-status" style={statusStyle}>
@@ -457,7 +459,7 @@ export default function AdminAnalyticsView() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan="9" style={{ textAlign: 'center', padding: '3rem 1rem', color: '#9E8F94' }}>
+                        <td colSpan="10" style={{ textAlign: 'center', padding: '3rem 1rem', color: '#9E8F94' }}>
                           No products found matching the selected search or category filters.
                         </td>
                       </tr>

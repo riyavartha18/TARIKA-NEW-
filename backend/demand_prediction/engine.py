@@ -16,7 +16,7 @@ class DecisionTreeEngine:
     6. Product Demand Prediction
     """
 
-    FEATURE_NAMES = ['units_sold', 'cart_quantity', 'wishlist_count', 'discount_percentage']
+    FEATURE_NAMES = ['units_sold', 'cart_quantity', 'wishlist_count', 'discount_percentage', 'notify_me_count']
 
     @staticmethod
     def calculate_entropy(targets):
@@ -240,6 +240,7 @@ class DecisionTreeEngine:
     def run_pipeline(cls):
         """
         Fetches historical monthly demand data from fact_demand + dim_time,
+        joins monthly aggregated notify_me_count from public.notify table,
         constructs supervised transition pairs (Month m -> Month m+1),
         trains a manual Decision Tree Classifier, and generates genuine next-month
         demand predictions (High, Medium, Low) for all catalog products based on their
@@ -280,7 +281,7 @@ class DecisionTreeEngine:
             next_forecast_period = "October 2026"
             latest_month_period = "September 2026"
 
-        # 1. Fetch historical demand observations ordered by product and time
+        # 1. Fetch historical demand observations joined with monthly aggregated Notify Me count
         query = """
             SELECT 
                 fd.product_key,
@@ -290,11 +291,22 @@ class DecisionTreeEngine:
                 fd.units_sold,
                 fd.cart_quantity,
                 fd.wishlist_count,
-                fd.discount_percentage
+                fd.discount_percentage,
+                COALESCE(nm.notify_me_count, 0) as notify_me_count
             FROM fact_demand fd
             JOIN dim_time dt ON fd.time_key = dt.time_key
             LEFT JOIN dim_product dp ON fd.product_key = dp.product_key
             LEFT JOIN dim_category dc ON fd.category_key = dc.category_key
+            LEFT JOIN (
+                SELECT 
+                    dp.product_key,
+                    DATE_TRUNC('month', CAST(n.notify_date AS DATE))::date as month_start,
+                    COUNT(*) as notify_me_count
+                FROM notify n
+                JOIN dim_product dp ON n.product_id = dp.product_id
+                WHERE n.notify_date IS NOT NULL AND n.notify_date != ''
+                GROUP BY dp.product_key, DATE_TRUNC('month', CAST(n.notify_date AS DATE))::date
+            ) nm ON fd.product_key = nm.product_key AND dt.month_start = nm.month_start
             ORDER BY fd.product_key ASC, dt.month_start ASC
         """
         cursor.execute(query)
@@ -319,7 +331,8 @@ class DecisionTreeEngine:
                 'units_sold': float(r[4] or 0),
                 'cart_quantity': float(r[5] or 0),
                 'wishlist_count': float(r[6] or 0),
-                'discount_percentage': float(r[7] or 0)
+                'discount_percentage': float(r[7] or 0),
+                'notify_me_count': float(r[8] or 0)
             })
 
         # 3. Build supervised training transition pairs: X_m -> Y_{m+1}
@@ -337,6 +350,7 @@ class DecisionTreeEngine:
                     'cart_quantity': curr_rec['cart_quantity'],
                     'wishlist_count': curr_rec['wishlist_count'],
                     'discount_percentage': curr_rec['discount_percentage'],
+                    'notify_me_count': curr_rec['notify_me_count'],
                     'next_units_sold': next_rec['units_sold']
                 })
 
@@ -402,22 +416,26 @@ class DecisionTreeEngine:
                 latest_cart = round(latest_rec['cart_quantity'], 2)
                 latest_wishlist = round(latest_rec['wishlist_count'], 2)
                 latest_discount = round(latest_rec['discount_percentage'], 2)
+                latest_notify = round(latest_rec['notify_me_count'], 2)
                 sample = {
                     'units_sold': latest_rec['units_sold'],
                     'cart_quantity': latest_rec['cart_quantity'],
                     'wishlist_count': latest_rec['wishlist_count'],
-                    'discount_percentage': latest_rec['discount_percentage']
+                    'discount_percentage': latest_rec['discount_percentage'],
+                    'notify_me_count': latest_rec['notify_me_count']
                 }
             else:
                 latest_units = 0.0
                 latest_cart = 0.0
                 latest_wishlist = 0.0
                 latest_discount = 0.0
+                latest_notify = 0.0
                 sample = {
                     'units_sold': 0.0,
                     'cart_quantity': 0.0,
                     'wishlist_count': 0.0,
-                    'discount_percentage': 0.0
+                    'discount_percentage': 0.0,
+                    'notify_me_count': 0.0
                 }
 
             pred_demand = cls.predict_sample(decision_tree, sample)
@@ -437,10 +455,12 @@ class DecisionTreeEngine:
                 'latest_cart_quantity': latest_cart,
                 'latest_wishlist_count': latest_wishlist,
                 'latest_discount_percentage': latest_discount,
+                'latest_notify_me_count': latest_notify,
                 'units_sold': latest_units,
                 'cart_quantity': latest_cart,
                 'wishlist_count': latest_wishlist,
                 'discount_percentage': latest_discount,
+                'notify_me_count': latest_notify,
                 'next_month': next_month_name,
                 'next_forecast_period': next_forecast_period,
                 'predicted_demand': pred_demand
