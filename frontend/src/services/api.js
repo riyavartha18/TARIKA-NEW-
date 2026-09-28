@@ -618,6 +618,23 @@ export async function getProductDetail(productId) {
 }
 
 /**
+ * Fetch Apriori-based Frequently Bought Together product recommendations.
+ */
+export async function getProductRecommendations(productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/recommendations/${productId}/`);
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || 'Failed to fetch recommendations' };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching recommendations' };
+  }
+}
+
+
+/**
  * Fetch New Arrivals.
  */
 export async function getNewArrivals(limit = 10) {

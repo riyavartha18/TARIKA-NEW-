@@ -15,6 +15,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -40,9 +41,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     # Third-party apps
     'corsheaders',
     'rest_framework',
+
     # Local apps
     'accounts.apps.AccountsConfig',
     'catalog.apps.CatalogConfig',
@@ -52,6 +55,7 @@ INSTALLED_APPS = [
     'delivery.apps.DeliveryConfig',
     'demand_prediction.apps.DemandPredictionConfig',
     'stock_to_be_ordered.apps.StockToBeOrderedConfig',
+    'recommendations.apps.RecommendationsConfig',
 ]
 
 MIDDLEWARE = [
@@ -131,15 +135,15 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
+# Static files (CSS, JavaScript)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
@@ -151,14 +155,16 @@ REST_FRAMEWORK = {
     ],
 }
 
+
 # Supabase Auth Configuration
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_ANON_KEY = os.getenv('SUPABASE_ANON_KEY')
 SUPABASE_SERVICE_ROLE_KEY = os.getenv('SUPABASE_SERVICE_ROLE_KEY')
 SUPABASE_JWT_SECRET = os.getenv('SUPABASE_JWT_SECRET')
 
+
 # CORS Configuration for Frontend Integration
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
-# Force server reload: warehouse routes enabled
 
+# Force server reload: warehouse routes enabled
