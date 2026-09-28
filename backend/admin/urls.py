@@ -2,6 +2,8 @@ from django.urls import path
 
 from admin.views import (
     AdminCreateStaffView,
+    AdminCustomerDetailView,
+    AdminCustomerListView,
     AdminDashboardStatsView,
     AdminOrderDetailView,
     AdminOrderListView,
@@ -24,4 +26,6 @@ urlpatterns = [
     path('products/create/', AdminProductCreateView.as_view(), name='products-create'),
     path('orders/', AdminOrderListView.as_view(), name='orders'),
     path('orders/<str:order_id>/', AdminOrderDetailView.as_view(), name='order-detail'),
+    path('customers/', AdminCustomerListView.as_view(), name='customers'),
+    path('customers/<str:customer_id>/', AdminCustomerDetailView.as_view(), name='customer-detail'),
 ]
