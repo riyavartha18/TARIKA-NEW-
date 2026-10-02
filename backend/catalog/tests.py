@@ -343,11 +343,11 @@ class CatalogServiceFilterSortingTests(SimpleTestCase):
 
         # Test 'price_low_high'
         CatalogService.filter_and_sort_products(queryset=mock_qs, sort='price_low_high')
-        mock_qs.order_by.assert_called_with('selling_price', 'product_name', 'product_id')
+        mock_qs.order_by.assert_called_with('dim_selling_price', 'product_name', 'product_id')
 
         # Test 'price_high_low'
         CatalogService.filter_and_sort_products(queryset=mock_qs, sort='price_high_low')
-        mock_qs.order_by.assert_called_with('-selling_price', 'product_name', 'product_id')
+        mock_qs.order_by.assert_called_with('-dim_selling_price', 'product_name', 'product_id')
 
         # Test 'name'
         CatalogService.filter_and_sort_products(queryset=mock_qs, sort='name')

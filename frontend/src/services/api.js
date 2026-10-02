@@ -1351,6 +1351,38 @@ export async function getDemandPredictionAnalytics(token, params = {}) {
   }
 }
 
+/**
+ * Fetch Revenue Forecasting analytics (Admin Analysis feature).
+ * Consumes the existing predicted-sales output and returns expected revenue
+ * (expected_revenue = predicted_sales x selling_price) calculated in Django.
+ *
+ * @param {string} token  - Bearer token (Admin only)
+ * @param {Object} params - Optional filters: { search, category, demand_level }
+ */
+export async function getRevenueForecast(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const query = new URLSearchParams();
+    if (params.search) query.append('search', params.search);
+    if (params.category && params.category !== 'ALL') query.append('category', params.category);
+    if (params.demand_level && params.demand_level !== 'ALL') query.append('demand_level', params.demand_level);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/revenue-forecasting/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || data.detail || 'Failed to fetch revenue forecast.' };
+    }
+    return { success: true, ...data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching revenue forecast.' };
+  }
+}
+
 /* ==========================================================================
    STOCK TO BE ORDERED API HELPERS  (Warehouse Manager only)
    ========================================================================== */

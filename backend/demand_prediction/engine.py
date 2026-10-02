@@ -382,7 +382,12 @@ class DecisionTreeEngine:
 
         # 9. Generate Genuine Next-Month Demand Predictions for all catalog products
         cursor.execute("""
-            SELECT dp.product_key, dp.product_name, COALESCE(dc.category_name, 'General Catalog')
+            SELECT
+                dp.product_key,
+                dp.product_name,
+                COALESCE(dc.category_name, 'General Catalog'),
+                COALESCE(dp.size, ''),
+                COALESCE(dp.color, '')
             FROM dim_product dp
             LEFT JOIN dim_category dc ON dp.category_id = dc.category_id
             ORDER BY dp.product_key ASC
@@ -398,6 +403,8 @@ class DecisionTreeEngine:
             p_key = cat_row[0]
             p_name = cat_row[1]
             c_name = cat_row[2]
+            p_size = cat_row[3]
+            p_color = cat_row[4]
 
             if p_key in product_records and product_records[p_key]:
                 recs_sorted = sorted(product_records[p_key], key=lambda x: x['month_start'])
@@ -440,6 +447,8 @@ class DecisionTreeEngine:
                 'product_key': p_key,
                 'product_name': p_name,
                 'category_name': c_name,
+                'size': p_size,
+                'color': p_color,
                 'latest_historical_month': latest_month_period,
                 'latest_units_sold': latest_units,
                 'latest_cart_quantity': latest_cart,

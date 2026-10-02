@@ -135,13 +135,13 @@ def group_records_by_product(records):
 def get_all_active_catalog_products():
     """
     Returns all products from dim_product + dim_category, including current_stock,
-    color, and size (joined from the operational `products` table via product_id).
+    color, and size from the product dimension.
 
     Each row is a unique product variant (color × size), because dim_product.product_key
     maps 1-to-1 with the SKU-level products row.
 
     current_stock is sourced directly from dim_product.current_stock.
-    color and size come from the operational products table.
+    color and size are sourced directly from dim_product.
     """
     with connection.cursor() as cursor:
         cursor.execute("""
@@ -151,11 +151,10 @@ def get_all_active_catalog_products():
                 dp.product_name,
                 COALESCE(dc.category_name, 'General Catalog') AS category_name,
                 COALESCE(dp.current_stock, 0)                 AS current_stock,
-                COALESCE(p.color, '')                          AS color,
-                COALESCE(p.size, '')                           AS size
+                COALESCE(dp.color, '')                         AS color,
+                COALESCE(dp.size, '')                          AS size
             FROM dim_product dp
             LEFT JOIN dim_category dc ON dp.category_id = dc.category_id
-            LEFT JOIN products p       ON dp.product_id  = p.product_id
             ORDER BY dp.product_key ASC
         """)
         rows = cursor.fetchall()

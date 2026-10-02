@@ -6,6 +6,7 @@ from rest_framework.exceptions import ValidationError, NotFound, PermissionDenie
 
 from accounts.models import Customer, Warehouse
 from catalog.models import Product, Inventory, OrderItem
+from catalog.pricing import get_dim_product_selling_price_map
 from cart.models import CartItem
 from cart.services import CartService, CustomerResolver
 from warehouse.models import Return, Delivery
@@ -93,10 +94,14 @@ class OrderCreationService:
         # Allocate single warehouse that has stock for ALL items
         warehouse = WarehouseAllocationService.allocate_warehouse(cart_items)
 
+        price_map = get_dim_product_selling_price_map(
+            item.product.product_id for item in cart_items if item.product
+        )
+
         # Authoritative server-side price calculation
         subtotal = 0.0
         for item in cart_items:
-            unit_price = float(item.product.selling_price or 0)
+            unit_price = float(price_map.get(str(item.product.product_id), 0) or 0)
             qty = int(item.quantity or 1)
             subtotal += unit_price * qty
 
@@ -148,7 +153,7 @@ class OrderCreationService:
 
             # 2. Create OrderItem records
             for item in cart_items:
-                item_unit_price = int(item.product.selling_price or 0)
+                item_unit_price = int(price_map.get(str(item.product.product_id), 0) or 0)
                 item_qty = int(item.quantity or 1)
                 item_subtotal = float(item_unit_price * item_qty)
 

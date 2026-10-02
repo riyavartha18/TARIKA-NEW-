@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'delivery.apps.DeliveryConfig',
     'demand_prediction.apps.DemandPredictionConfig',
     'stock_to_be_ordered.apps.StockToBeOrderedConfig',
+    'revenue_forecasting.apps.RevenueForecastingConfig',
     'recommendations.apps.RecommendationsConfig',
 ]
 

@@ -57,7 +57,8 @@ class CartURLTests(SimpleTestCase):
 class WishlistAndCartSerializerTests(SimpleTestCase):
     """Test serializer validation, line totals, and stock calculations."""
 
-    def test_cart_item_line_total_calculation(self):
+    @patch('cart.serializers.get_dim_product_selling_price_map', return_value={'p-1': 2700})
+    def test_cart_item_line_total_uses_dimension_price(self, mock_price_map):
         product = Product(
             product_id='p-1',
             product_name='Designer Gown',
@@ -70,10 +71,12 @@ class WishlistAndCartSerializerTests(SimpleTestCase):
         serializer = CartItemSerializer(item)
         data = serializer.data
 
-        self.assertEqual(data['unit_price'], 2500)
-        self.assertEqual(data['line_total'], 7500)
+        self.assertEqual(data['product']['selling_price'], 2700)
+        self.assertEqual(data['unit_price'], 2700)
+        self.assertEqual(data['line_total'], 8100)
         self.assertEqual(data['quantity'], 3)
         self.assertTrue(data['is_stock_available'])
+        mock_price_map.assert_called_once_with(['p-1'])
 
     @patch('cart.serializers.Product.objects.get')
     def test_add_to_wishlist_serializer_validation(self, mock_get):

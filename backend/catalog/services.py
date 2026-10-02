@@ -1,7 +1,8 @@
 from django.db.models import (
-    Q, Sum, F, OuterRef, Subquery, IntegerField, DecimalField
+    Q, Sum, F, OuterRef, Subquery, IntegerField, BigIntegerField
 )
 from django.db.models.functions import Coalesce
+from django.db.models.expressions import RawSQL
 from .models import Category, Product, Inventory, OrderItem, Review
 
 
@@ -26,7 +27,13 @@ class CatalogService:
                 total_stock_annotated=Coalesce(
                     Subquery(stock_subquery, output_field=IntegerField()),
                     0
-                )
+                ),
+                dim_selling_price=RawSQL(
+                    '(SELECT dp.selling_price FROM dim_product dp '
+                    'WHERE dp.product_id = products.product_id LIMIT 1)',
+                    [],
+                    output_field=BigIntegerField(),
+                ),
             )
         )
 
@@ -82,7 +89,7 @@ class CatalogService:
         if min_price is not None:
             try:
                 min_p = float(min_price)
-                queryset = queryset.filter(selling_price__gte=min_p)
+                queryset = queryset.filter(dim_selling_price__gte=min_p)
             except (ValueError, TypeError):
                 pass
 
@@ -90,7 +97,7 @@ class CatalogService:
         if max_price is not None:
             try:
                 max_p = float(max_price)
-                queryset = queryset.filter(selling_price__lte=max_p)
+                queryset = queryset.filter(dim_selling_price__lte=max_p)
             except (ValueError, TypeError):
                 pass
 
@@ -99,9 +106,9 @@ class CatalogService:
         if sort_option == 'newest':
             queryset = queryset.order_by('-launch_date', '-created_at', 'product_id')
         elif sort_option == 'price_low_high':
-            queryset = queryset.order_by('selling_price', 'product_name', 'product_id')
+            queryset = queryset.order_by('dim_selling_price', 'product_name', 'product_id')
         elif sort_option == 'price_high_low':
-            queryset = queryset.order_by('-selling_price', 'product_name', 'product_id')
+            queryset = queryset.order_by('-dim_selling_price', 'product_name', 'product_id')
         elif sort_option == 'name':
             queryset = queryset.order_by('product_name', 'product_id')
         else:
@@ -154,8 +161,10 @@ class CatalogService:
         """
         base_qs = cls.get_annotated_products_queryset()
 
-        # Primary: products where base_price > selling_price
-        sale_qs = base_qs.filter(base_price__gt=F('selling_price')).order_by('selling_price')
+        # Primary: products where base_price > the warehouse selling price.
+        sale_qs = base_qs.filter(
+            base_price__gt=F('dim_selling_price')
+        ).order_by('dim_selling_price')
         if sale_qs.exists():
             return sale_qs[:limit] if limit else sale_qs
 
@@ -167,9 +176,9 @@ class CatalogService:
         )
 
         if discounted_product_ids:
-            discount_qs = base_qs.filter(product_id__in=discounted_product_ids).order_by('selling_price', 'product_id')
+            discount_qs = base_qs.filter(product_id__in=discounted_product_ids).order_by('dim_selling_price', 'product_id')
             return discount_qs[:limit] if limit else discount_qs
 
         # Fallback 2: Lowest price clearance
-        clearance_qs = base_qs.order_by('selling_price', 'product_id')
+        clearance_qs = base_qs.order_by('dim_selling_price', 'product_id')
         return clearance_qs[:limit] if limit else clearance_qs

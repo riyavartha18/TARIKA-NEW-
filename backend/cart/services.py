@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from rest_framework.exceptions import ValidationError, NotFound
 from django.db.models import Sum
+from catalog.pricing import get_dim_product_selling_price_map
 from catalog.models import Product, Inventory
 from accounts.models import Customer
 from .models import WishlistItem, CartItem
@@ -106,11 +107,19 @@ class CartService:
     @classmethod
     def get_cart_summary(cls, customer):
         items = cls.get_customer_cart_items(customer)
+        price_map = get_dim_product_selling_price_map(
+            item.product.product_id for item in items if item.product
+        )
+        for item in items:
+            if item.product:
+                item.product._dim_product_selling_price = price_map.get(
+                    str(item.product.product_id)
+                ) or 0
         item_data = CartItemSerializer(items, many=True).data
 
         total_items = sum(item.quantity or 0 for item in items)
         subtotal = sum(
-            (item.quantity or 0) * (item.product.selling_price or 0)
+            (item.quantity or 0) * (price_map.get(str(item.product.product_id)) or 0)
             for item in items if item.product
         )
 

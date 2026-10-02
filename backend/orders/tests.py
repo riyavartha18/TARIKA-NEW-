@@ -177,8 +177,10 @@ class OrdersServiceTests(SimpleTestCase):
     @patch('orders.services.WarehouseAllocationService.allocate_warehouse')
     @patch('orders.services.StockVerificationService.verify_stock')
     @patch('orders.services.CartItem.objects.filter')
+    @patch('orders.services.get_dim_product_selling_price_map', return_value={'prod-101': 4700})
     def test_successful_order_creation_and_cart_clearing(
         self,
+        mock_price_map,
         mock_cart_filter,
         mock_verify_stock,
         mock_allocate_wh,
@@ -204,7 +206,7 @@ class OrdersServiceTests(SimpleTestCase):
             order_id='ord-test-uuid',
             customer=self.customer,
             warehouse=self.warehouse_a,
-            total_amount=9000.0,
+            total_amount=9400.0,
             order_status='confirmed',
             payment_status='unpaid'
         )
@@ -222,8 +224,11 @@ class OrdersServiceTests(SimpleTestCase):
         )
 
         self.assertEqual(order.order_id, 'ord-test-uuid')
-        self.assertEqual(order.total_amount, 9000.0)
+        self.assertEqual(order.total_amount, 9400.0)
         mock_item_create.assert_called_once()
+        self.assertEqual(mock_item_create.call_args.kwargs['unit_price'], 4700)
+        mock_price_map.assert_called_once()
+        self.assertEqual(list(mock_price_map.call_args.args[0]), ['prod-101'])
         mock_payment_create.assert_called_once()
         mock_clear_cart.assert_called_once_with(self.customer)
 
