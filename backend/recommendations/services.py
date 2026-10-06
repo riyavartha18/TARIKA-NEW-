@@ -6,6 +6,7 @@ from mlxtend.preprocessing import TransactionEncoder
 from mlxtend.frequent_patterns import apriori, association_rules
 
 from catalog.models import Product
+from catalog.serializers import get_product_image_url
 from .models import ProductRecommendation
 
 logger = logging.getLogger(__name__)
@@ -374,7 +375,8 @@ class RecommendationService:
                     'color': p.color,
                     'size': p.size,
                     'material': p.material,
-                    'is_active': p.is_active
+                    'is_active': p.is_active,
+                    'image': get_product_image_url(p)
                 })
 
             primary_product = matched_items[0] if matched_items else None

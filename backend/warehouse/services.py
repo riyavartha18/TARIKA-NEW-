@@ -14,7 +14,7 @@ class WarehouseService:
         Annotates total stock quantity from the inventory table.
         Returns a list of plain dicts ready for direct JSON serialization.
         """
-        from catalog.serializers import CATEGORY_IMAGE_MAPPING
+        from catalog.serializers import CATEGORY_IMAGE_MAPPING, get_product_image_url
 
         # Query all active products with category, manufacturer & total inventory stock
         products = (
@@ -64,7 +64,7 @@ class WarehouseService:
                 'is_active': p.is_active,
                 'in_stock': total_stock_val > 0,
                 'total_stock': total_stock_val,
-                'image': CATEGORY_IMAGE_MAPPING.get(cat_name_lower),
+                'image': get_product_image_url(p),
             })
             cat_map[cid]['product_count'] += 1
 

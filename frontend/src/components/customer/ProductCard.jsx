@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Heart, ShoppingBag, Zap, Check, Eye } from 'lucide-react';
 import { useCustomer } from '../../context/CustomerContext';
 
-export default function ProductCard({ product, onCardClick }) {
+export default function ProductCard({ product, onCardClick, loading = "lazy" }) {
   const { isWishlisted, toggleWishlist, addToBag, openProductDetail } = useCustomer();
   const [addingToBag, setAddingToBag] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -80,7 +80,8 @@ export default function ProductCard({ product, onCardClick }) {
         <img
           src={imageUrl}
           alt={productName}
-          loading="lazy"
+          loading={loading}
+          decoding="async"
           onError={(e) => {
             e.target.src =
               'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=700&q=80';

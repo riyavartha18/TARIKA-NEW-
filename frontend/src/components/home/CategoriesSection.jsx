@@ -36,6 +36,7 @@ export default function CategoriesSection() {
                 src={cat.image}
                 alt={cat.name}
                 loading="lazy"
+                decoding="async"
                 style={{
                   width: '100%',
                   height: '100%',

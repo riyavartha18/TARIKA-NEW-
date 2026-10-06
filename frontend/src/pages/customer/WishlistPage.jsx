@@ -98,6 +98,8 @@ export default function WishlistPage() {
             const isBusy = movingId === item.product_id;
 
             const imageUrl =
+              item.image ||
+              item.product?.image ||
               item.primary_image ||
               'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=700&q=80';
 

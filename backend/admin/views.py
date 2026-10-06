@@ -12,7 +12,7 @@ import datetime
 
 from accounts.models import Employee, Customer, Role, Warehouse
 from catalog.models import Product, Inventory, Category, Manufacturer
-from catalog.serializers import CATEGORY_IMAGE_MAPPING
+from catalog.serializers import CATEGORY_IMAGE_MAPPING, get_product_image_url
 from warehouse.models import Order, Delivery, Return
 from warehouse.services import WarehouseService
 from warehouse.serializers import WarehouseOrderSerializer, WarehouseOrderDetailSerializer
@@ -466,9 +466,7 @@ class AdminProductListView(APIView):
 
         products_list = []
         for p in products_qs.order_by('-created_at', 'product_name'):
-            cat_name = p.category.category_name if p.category else ''
-            cat_name_lower = (cat_name or '').strip().lower()
-            img_url = CATEGORY_IMAGE_MAPPING.get(cat_name_lower, None)
+            img_url = get_product_image_url(p)
 
             tot_stock = int(getattr(p, 'total_stock_annotated', 0) or 0)
             is_low = (0 < tot_stock <= 5)

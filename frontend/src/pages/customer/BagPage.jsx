@@ -111,7 +111,9 @@ export default function BagPage() {
               const lineTotal = Number(item.line_total || 0);
               const maxStock = item.available_stock !== undefined ? item.available_stock : 10;
               const imageUrl =
+                product.image ||
                 product.primary_image ||
+                (product.images && product.images[0]?.image_url) ||
                 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80';
 
               return (

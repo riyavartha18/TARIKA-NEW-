@@ -821,6 +821,8 @@ export default function CheckoutPage() {
                   const unitPrice = Number(item.product?.selling_price || item.selling_price || 0);
                   const lineTotal = unitPrice * (item.quantity || 1);
                   const imageUrl =
+                    item.product?.image ||
+                    item.image ||
                     item.product?.primary_image ||
                     item.primary_image ||
                     'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=300&q=80';

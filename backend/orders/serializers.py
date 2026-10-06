@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Order, Payment
 from catalog.models import OrderItem, Review
-from catalog.serializers import CATEGORY_IMAGE_MAPPING
+from catalog.serializers import CATEGORY_IMAGE_MAPPING, get_product_image_url
 from warehouse.models import Delivery, Return
 
 
@@ -97,12 +97,9 @@ class OrderItemDetailSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         if obj.product:
-            if hasattr(obj.product, 'category') and obj.product.category:
-                cat_name = (obj.product.category.category_name or '').strip().lower()
-                if cat_name in CATEGORY_IMAGE_MAPPING:
-                    return CATEGORY_IMAGE_MAPPING[cat_name]
-            if getattr(obj.product, 'primary_image', None):
-                return obj.product.primary_image
+            img = get_product_image_url(obj.product)
+            if img:
+                return img
         return 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80'
 
     def get_return_info(self, obj):

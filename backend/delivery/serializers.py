@@ -2,7 +2,7 @@ from rest_framework import serializers
 from warehouse.models import Delivery, Order, Return
 from accounts.models import Employee, Customer
 from catalog.models import OrderItem, Product
-from catalog.serializers import CATEGORY_IMAGE_MAPPING
+from catalog.serializers import CATEGORY_IMAGE_MAPPING, get_product_image_url
 
 
 class DeliveryEmployeeSerializer(serializers.ModelSerializer):
@@ -46,9 +46,8 @@ class DeliveryOrderItemSerializer(serializers.ModelSerializer):
         ]
 
     def get_image(self, obj):
-        if obj.product and obj.product.category:
-            cat_name = (obj.product.category.category_name or '').strip().lower()
-            return CATEGORY_IMAGE_MAPPING.get(cat_name, None)
+        if obj.product:
+            return get_product_image_url(obj.product)
         return None
 
 
@@ -310,9 +309,8 @@ class DeliveryReturnPickupSerializer(serializers.ModelSerializer):
         return getattr(obj.order_item, 'quantity', 1) if obj.order_item else 1
 
     def get_image(self, obj):
-        if obj.order_item and obj.order_item.product and obj.order_item.product.category:
-            cat_name = (obj.order_item.product.category.category_name or '').strip().lower()
-            return CATEGORY_IMAGE_MAPPING.get(cat_name, None)
+        if obj.order_item and obj.order_item.product:
+            return get_product_image_url(obj.order_item.product)
         return None
 
 

@@ -22,7 +22,8 @@ class CatalogService:
 
         return (
             Product.objects.filter(is_active=True)
-            .select_related('category')
+            .select_related('category', 'manufacturer')
+            .prefetch_related('reviews')
             .annotate(
                 total_stock_annotated=Coalesce(
                     Subquery(stock_subquery, output_field=IntegerField()),

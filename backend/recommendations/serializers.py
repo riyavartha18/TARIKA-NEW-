@@ -35,6 +35,7 @@ class RecommendedProductInfoSerializer(serializers.Serializer):
     size = serializers.CharField(allow_null=True)
     material = serializers.CharField(allow_null=True)
     is_active = serializers.BooleanField()
+    image = serializers.CharField(allow_null=True, required=False)
 
 
 class RecommendationItemSerializer(serializers.Serializer):

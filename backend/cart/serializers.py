@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.db.models import Sum
 from catalog.pricing import get_dim_product_selling_price_map
 from catalog.models import Product, Inventory
-from catalog.serializers import ProductListSerializer, CATEGORY_IMAGE_MAPPING
+from catalog.serializers import ProductListSerializer, CATEGORY_IMAGE_MAPPING, get_product_image_url
 from .models import WishlistItem, CartItem
 
 
@@ -42,8 +42,7 @@ class WishlistProductSummarySerializer(serializers.ModelSerializer):
         return self.get_total_stock(obj) > 0
 
     def get_image(self, obj):
-        cat_name = (obj.category.category_name if obj.category else '').strip().lower()
-        return CATEGORY_IMAGE_MAPPING.get(cat_name, None)
+        return get_product_image_url(obj)
 
 
 class WishlistItemSerializer(serializers.ModelSerializer):
@@ -114,8 +113,7 @@ class CartProductSummarySerializer(serializers.ModelSerializer):
         return self.get_available_stock(obj) > 0
 
     def get_image(self, obj):
-        cat_name = (obj.category.category_name if obj.category else '').strip().lower()
-        return CATEGORY_IMAGE_MAPPING.get(cat_name, None)
+        return get_product_image_url(obj)
 
 
 class CartItemSerializer(serializers.ModelSerializer):

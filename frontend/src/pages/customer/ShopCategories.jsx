@@ -120,8 +120,9 @@ const CREATIVE_CATEGORIES = [
 
 export default function ShopCategories() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialCategory = searchParams.get('category') || 'Dresses';
-  const initialSearch = searchParams.get('search') || '';
+  const urlCategory = searchParams.get('category');
+  const urlSearch = searchParams.get('search') || '';
+  const initialCategory = urlCategory || (urlSearch ? 'ALL' : 'Dresses');
 
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
@@ -155,15 +156,22 @@ export default function ShopCategories() {
 
   // When query param changes in URL
   useEffect(() => {
-    const urlCategory = searchParams.get('category');
-    if (urlCategory && urlCategory !== selectedCategory) {
-      setSelectedCategory(urlCategory);
-      setActiveSubcategory('All');
+    const cat = searchParams.get('category');
+    const search = searchParams.get('search') || '';
+    if (cat) {
+      setSelectedCategory(cat);
+    } else if (search) {
+      setSelectedCategory('ALL');
+    } else {
+      setSelectedCategory('Dresses');
     }
+    setActiveSubcategory('All');
   }, [searchParams]);
 
   // Fetch products when category or API filters change
   useEffect(() => {
+    let isCancelled = false;
+
     async function fetchCategoryProducts() {
       setLoadingProducts(true);
       try {
@@ -172,11 +180,17 @@ export default function ShopCategories() {
           page_size: 40,
         };
 
-        if (selectedCategory && selectedCategory !== 'ALL') {
+        const currentCat = searchParams.get('category');
+        const currentSearch = searchParams.get('search');
+
+        if (currentCat) {
+          params.category = currentCat;
+        } else if (selectedCategory && selectedCategory !== 'ALL') {
           params.category = selectedCategory;
         }
-        if (initialSearch) {
-          params.search = initialSearch;
+
+        if (currentSearch) {
+          params.search = currentSearch;
         }
         if (onlyInStock) {
           params.in_stock = 'true';
@@ -186,18 +200,26 @@ export default function ShopCategories() {
         }
 
         const res = await getProducts(params);
-        if (res.success) {
+        if (!isCancelled && res.success) {
           setRawProducts(res.products || []);
         }
       } catch (err) {
-        console.error('Error fetching category products', err);
+        if (!isCancelled) {
+          console.error('Error fetching category products', err);
+        }
       } finally {
-        setLoadingProducts(false);
+        if (!isCancelled) {
+          setLoadingProducts(false);
+        }
       }
     }
 
     fetchCategoryProducts();
-  }, [selectedCategory, selectedSort, onlyInStock, maxPriceFilter, initialSearch]);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [selectedCategory, selectedSort, onlyInStock, maxPriceFilter, searchParams]);
 
   // Client-side filtering for sale, size, color and subcategory
   const filteredProducts = React.useMemo(() => {
@@ -296,9 +318,70 @@ export default function ShopCategories() {
   return (
     <div style={{ paddingBottom: '4rem' }}>
       {/* =================================================================
-          1. CREATIVE CATEGORIES LANDING SECTION (Matching Reference Image)
+          1. CREATIVE CATEGORIES LANDING SECTION OR SEARCH HEADER
          ================================================================= */}
-      <section className="cat-editorial-landing">
+      {urlSearch && !urlCategory ? (
+        <section
+          style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: '24px',
+            padding: '2.5rem 3rem',
+            border: '1px solid rgba(216, 114, 126, 0.22)',
+            boxShadow: '0 8px 30px rgba(184, 80, 94, 0.05)',
+            marginBottom: '2.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1.5rem',
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                color: '#D8727E',
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                marginBottom: '0.4rem',
+              }}
+            >
+              SEARCH RESULTS
+            </div>
+            <h1
+              style={{
+                margin: 0,
+                fontFamily: "'Playfair Display', serif",
+                fontSize: '2.2rem',
+                color: '#1F191B',
+              }}
+            >
+              Results for <span style={{ color: '#8E3642', fontStyle: 'italic' }}>"{urlSearch}"</span>
+            </h1>
+            <p style={{ margin: '0.4rem 0 0 0', fontSize: '0.92rem', color: '#6B5E63' }}>
+              Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'matching product' : 'matching products'} across all categories.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setSearchParams({})}
+            className="tarika-btn-outline"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0.65rem 1.4rem',
+              fontSize: '0.85rem',
+            }}
+          >
+            <RotateCcw size={14} />
+            <span>Clear Search</span>
+          </button>
+        </section>
+      ) : (
+        <section className="cat-editorial-landing">
         {/* Editorial Masthead */}
         <div className="cat-editorial-masthead">
           <div className="cat-masthead-left">
@@ -516,6 +599,7 @@ export default function ShopCategories() {
           <ArrowDown size={14} />
         </div>
       </section>
+      )}
 
       {/* =================================================================
           2. CATEGORY PRODUCT SECTION (Loaded with Actual Database Products)
@@ -658,7 +742,7 @@ export default function ShopCategories() {
                     color: '#8E3642',
                   }}
                 >
-                  FEATURED DEPARTMENT
+                  {urlSearch ? (urlCategory ? 'SEARCH IN DEPARTMENT' : 'SEARCH RESULTS') : 'FEATURED DEPARTMENT'}
                 </span>
                 <h2
                   style={{
@@ -669,10 +753,12 @@ export default function ShopCategories() {
                     color: '#1F191B',
                   }}
                 >
-                  {activeCreativeTitle}
+                  {urlSearch ? `Results for "${urlSearch}"` : activeCreativeTitle}
                 </h2>
                 <p style={{ margin: 0, color: '#6B5E63', fontSize: '0.92rem' }}>
-                  {activeSubtitle}
+                  {urlSearch
+                    ? `Found ${filteredProducts.length} ${filteredProducts.length === 1 ? 'matching product' : 'matching products'} ${urlCategory ? 'in ' + urlCategory : 'across all categories'}.`
+                    : activeSubtitle}
                 </p>
               </div>
 

@@ -330,7 +330,8 @@ export default function ProductDetailModal() {
 
   // Build image array
   const images = [];
-  if (product.primary_image) images.push(product.primary_image);
+  if (product.image) images.push(product.image);
+  if (product.primary_image && !images.includes(product.primary_image)) images.push(product.primary_image);
   if (Array.isArray(product.images) && product.images.length > 0) {
     product.images.forEach((img) => {
       const url = typeof img === 'string' ? img : img.image_url;

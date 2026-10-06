@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Search,
   Heart,
@@ -22,14 +22,20 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
   const { wishlistItems, totalItems, subtotal, wishlistBounced, bagBounced } = useCustomer();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const urlSearch = searchParams.get('search') || '';
 
   const [scrolled, setScrolled] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
-  const [localSearch, setLocalSearch] = useState(searchTerm);
+  const [localSearch, setLocalSearch] = useState(searchTerm || urlSearch);
 
   useEffect(() => {
-    setLocalSearch(searchTerm);
-  }, [searchTerm]);
+    if (searchTerm) {
+      setLocalSearch(searchTerm);
+    } else {
+      setLocalSearch(urlSearch);
+    }
+  }, [searchTerm, urlSearch]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -49,7 +55,12 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
     if (onSearchChange) {
       onSearchChange(localSearch);
     } else {
-      navigate(`/customer/shop?search=${encodeURIComponent(localSearch)}`);
+      const trimmed = localSearch.trim();
+      if (trimmed) {
+        navigate(`/customer/shop?search=${encodeURIComponent(trimmed)}`);
+      } else {
+        navigate('/customer/shop');
+      }
     }
   };
 
@@ -57,6 +68,13 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
     setLocalSearch('');
     if (onSearchChange) {
       onSearchChange('');
+    } else if (location.pathname.includes('/customer/shop')) {
+      const currentCategory = searchParams.get('category');
+      if (currentCategory) {
+        navigate(`/customer/shop?category=${encodeURIComponent(currentCategory)}`);
+      } else {
+        navigate('/customer/shop');
+      }
     }
   };
 
