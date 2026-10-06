@@ -71,7 +71,8 @@ def get_historical_demand_records():
     Returns a list of dicts:
       product_key, product_id, product_name, category_name,
       month_start (date), month_num, year,
-      units_sold, cart_quantity, wishlist_count, discount_percentage
+      units_sold, cart_quantity, wishlist_count, discount_amount,
+      discount_percentage
     """
     with connection.cursor() as cursor:
         cursor.execute("""
@@ -83,13 +84,15 @@ def get_historical_demand_records():
                 dt.month_start,
                 dt.month,
                 dt.year,
+                COALESCE(p.base_price, dp.selling_price, 0),
                 fd.units_sold,
                 fd.cart_quantity,
                 fd.wishlist_count,
-                fd.discount_percentage
+                fd.discount_amount
             FROM fact_demand fd
             JOIN dim_time dt ON fd.time_key = dt.time_key
             LEFT JOIN dim_product dp ON fd.product_key = dp.product_key
+            LEFT JOIN products p ON dp.product_id = p.product_id
             LEFT JOIN dim_category dc ON fd.category_key = dc.category_key
             WHERE dt.year IS NOT NULL AND dt.month IS NOT NULL
             ORDER BY fd.product_key ASC, dt.month_start ASC
@@ -106,10 +109,14 @@ def get_historical_demand_records():
             'month_start': r[4],
             'month_num': int(r[5]),
             'year': int(r[6]),
-            'units_sold': float(r[7] or 0),
-            'cart_quantity': float(r[8] or 0),
-            'wishlist_count': float(r[9] or 0),
-            'discount_percentage': float(r[10] or 0),
+            'units_sold': float(r[8] or 0),
+            'cart_quantity': float(r[9] or 0),
+            'wishlist_count': float(r[10] or 0),
+            'discount_amount': float(r[11] or 0),
+            'discount_percentage': (
+                min(100.0, max(0.0, float(r[11] or 0) / float(r[7]) * 100))
+                if r[7] and float(r[7]) > 0 else 0.0
+            ),
         })
 
     return records

@@ -288,14 +288,16 @@ class DecisionTreeEngine:
                 COALESCE(dp.product_name, CONCAT('Product #', fd.product_key)) as product_name,
                 COALESCE(dc.category_name, 'General Catalog') as category_name,
                 dt.month_start,
+                COALESCE(p.base_price, dp.selling_price, 0) as base_price,
                 fd.units_sold,
                 fd.cart_quantity,
                 fd.wishlist_count,
-                fd.discount_percentage,
+                fd.discount_amount,
                 COALESCE(fd.notify_me_count, 0) as notify_me_count
             FROM fact_demand fd
             JOIN dim_time dt ON fd.time_key = dt.time_key
             LEFT JOIN dim_product dp ON fd.product_key = dp.product_key
+            LEFT JOIN products p ON dp.product_id = p.product_id
             LEFT JOIN dim_category dc ON fd.category_key = dc.category_key
             ORDER BY fd.product_key ASC, dt.month_start ASC
         """
@@ -318,11 +320,16 @@ class DecisionTreeEngine:
                 'product_name': r[1],
                 'category_name': r[2],
                 'month_start': r[3],
-                'units_sold': float(r[4] or 0),
-                'cart_quantity': float(r[5] or 0),
-                'wishlist_count': float(r[6] or 0),
-                'discount_percentage': float(r[7] or 0),
-                'notify_me_count': float(r[8] or 0)
+                'base_price': float(r[4] or 0),
+                'units_sold': float(r[5] or 0),
+                'cart_quantity': float(r[6] or 0),
+                'wishlist_count': float(r[7] or 0),
+                'discount_amount': float(r[8] or 0),
+                'discount_percentage': (
+                    min(100.0, max(0.0, float(r[8] or 0) / float(r[4]) * 100))
+                    if r[4] and float(r[4]) > 0 else 0.0
+                ),
+                'notify_me_count': float(r[9] or 0)
             })
 
         # 3. Build supervised training transition pairs: X_m -> Y_{m+1}
@@ -387,8 +394,10 @@ class DecisionTreeEngine:
                 dp.product_name,
                 COALESCE(dc.category_name, 'General Catalog'),
                 COALESCE(dp.size, ''),
-                COALESCE(dp.color, '')
+                COALESCE(dp.color, ''),
+                COALESCE(p.base_price, dp.selling_price, 0)
             FROM dim_product dp
+            LEFT JOIN products p ON dp.product_id = p.product_id
             LEFT JOIN dim_category dc ON dp.category_id = dc.category_id
             ORDER BY dp.product_key ASC
         """)
@@ -405,6 +414,7 @@ class DecisionTreeEngine:
             c_name = cat_row[2]
             p_size = cat_row[3]
             p_color = cat_row[4]
+            base_price = float(cat_row[5] or 0)
 
             if p_key in product_records and product_records[p_key]:
                 recs_sorted = sorted(product_records[p_key], key=lambda x: x['month_start'])
@@ -412,6 +422,7 @@ class DecisionTreeEngine:
                 latest_units = round(latest_rec['units_sold'], 2)
                 latest_cart = round(latest_rec['cart_quantity'], 2)
                 latest_wishlist = round(latest_rec['wishlist_count'], 2)
+                latest_discount_amount = latest_rec['discount_amount']
                 latest_discount = round(latest_rec['discount_percentage'], 2)
                 latest_notify = round(latest_rec['notify_me_count'], 2)
                 sample = {
@@ -425,6 +436,7 @@ class DecisionTreeEngine:
                 latest_units = 0.0
                 latest_cart = 0.0
                 latest_wishlist = 0.0
+                latest_discount_amount = 0.0
                 latest_discount = 0.0
                 latest_notify = 0.0
                 sample = {
@@ -449,10 +461,12 @@ class DecisionTreeEngine:
                 'category_name': c_name,
                 'size': p_size,
                 'color': p_color,
+                'base_price': base_price,
                 'latest_historical_month': latest_month_period,
                 'latest_units_sold': latest_units,
                 'latest_cart_quantity': latest_cart,
                 'latest_wishlist_count': latest_wishlist,
+                'latest_discount_amount': latest_discount_amount,
                 'latest_discount_percentage': latest_discount,
                 'latest_notify_me_count': latest_notify,
                 'units_sold': latest_units,
@@ -523,4 +537,3 @@ class DecisionTreeEngine:
     @classmethod
     def calculate_feature_gains_report(cls, dataset, root_entropy):
         return cls.evaluate_feature_gains(dataset, root_entropy)
-

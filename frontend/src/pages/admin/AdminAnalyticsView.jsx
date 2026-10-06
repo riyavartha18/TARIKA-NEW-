@@ -957,7 +957,12 @@ export default function AdminAnalyticsView() {
                             <td>{p.latest_cart_quantity ?? p.cart_quantity}</td>
                             <td>{p.latest_wishlist_count ?? p.wishlist_count}</td>
                             <td>{p.latest_notify_me_count ?? p.notify_me_count ?? 0}</td>
-                            <td>{p.latest_discount_percentage ?? p.discount_percentage}%</td>
+                            <td>
+                              {Math.min(
+                                100,
+                                Math.max(0, Number(p.latest_discount_percentage ?? p.discount_percentage) || 0)
+                              ).toFixed(2)}%
+                            </td>
                             <td>
                               <span className="admin-metric-status" style={statusStyle}>
                                 {p.predicted_demand} Demand
