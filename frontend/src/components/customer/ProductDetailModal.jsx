@@ -16,6 +16,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { useCustomer } from '../../context/CustomerContext';
+import { getProductPricing } from '../../utils/pricing';
 import { useAuth } from '../../auth/AuthContext';
 import ProductCard from './ProductCard';
 import { submitProductReview, getProductRecommendations, getProductDetail } from '../../services/api';
@@ -230,14 +231,7 @@ export default function ProductDetailModal() {
   const productId = product.product_id || product.id;
   const wishlisted = isWishlisted(productId);
 
-  const basePrice = Number(product.base_price || 0);
-  const salePrice = product.sale_price ? Number(product.sale_price) : null;
-  const isOnSale = product.is_on_sale && salePrice && salePrice < basePrice;
-  const currentPrice = isOnSale ? salePrice : basePrice;
-
-  const discountPercent = isOnSale
-    ? Math.round(((basePrice - salePrice) / basePrice) * 100)
-    : 0;
+  const { basePrice, currentPrice, discountAmount, isOnSale } = getProductPricing(product);
 
   // Rating and reviews from database / local state
   const reviewCount = localReviews.length;
@@ -430,7 +424,7 @@ export default function ProductDetailModal() {
               />
               {isOnSale && (
                 <span className="product-badge-sale" style={{ top: '16px', left: '16px' }}>
-                  {discountPercent}% OFF
+                  ₹{discountAmount.toLocaleString('en-IN')} OFF
                 </span>
               )}
             </div>
@@ -563,7 +557,7 @@ export default function ProductDetailModal() {
                     borderRadius: '6px',
                   }}
                 >
-                  Save ₹{(basePrice - salePrice).toLocaleString('en-IN')}
+                  Save ₹{discountAmount.toLocaleString('en-IN')}
                 </span>
               )}
             </div>

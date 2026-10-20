@@ -266,7 +266,9 @@ export default function OrderConfirmationPage() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#6B5E63' }}>
               <span>Discount</span>
-              <span style={{ color: '#9E8F94' }}>₹0</span>
+              <span style={{ color: '#9E8F94' }}>
+                ₹{Number(order.discount_amount || 0).toLocaleString('en-IN')}
+              </span>
             </div>
             <div
               style={{

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../../auth/AuthContext';
 import StockToBeOrdered from '../../features/stockToBeOrdered/StockToBeOrdered';
+import { getProductPricing } from '../../utils/pricing';
 import {
   getCategories,
   getProducts,
@@ -101,16 +102,7 @@ function WarehouseProductCard({ product, onCardClick }) {
   const [hovered, setHovered] = React.useState(false);
 
   const productName = product.product_name || product.name || 'Artisanal Garment';
-  const basePrice = Number(product.base_price || product.selling_price || 0);
-  const salePrice = product.selling_price !== undefined && product.selling_price !== null
-    ? Number(product.selling_price)
-    : (product.sale_price !== undefined ? Number(product.sale_price) : basePrice);
-  const isOnSale = (product.is_on_sale || salePrice < basePrice) && salePrice < basePrice;
-  const currentPrice = isOnSale ? salePrice : (salePrice || basePrice);
-
-  const discountPercent = isOnSale && basePrice > 0
-    ? Math.round(((basePrice - salePrice) / basePrice) * 100)
-    : 0;
+  const { basePrice, currentPrice, discountAmount, isOnSale } = getProductPricing(product);
 
   const totalStock = product.total_stock !== undefined ? product.total_stock : (product.in_stock ? 10 : 0);
   const isOutOfStock = totalStock <= 0;
@@ -177,9 +169,9 @@ function WarehouseProductCard({ product, onCardClick }) {
         )}
 
         {/* Sale Discount Badge */}
-        {isOnSale && discountPercent > 0 && (
+        {isOnSale && discountAmount > 0 && (
           <span className="product-badge-sale">
-            {discountPercent}% OFF
+            ₹{discountAmount.toLocaleString('en-IN')} OFF
           </span>
         )}
 

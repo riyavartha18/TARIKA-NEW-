@@ -204,7 +204,7 @@ export default function NewArrivalsSection() {
                     {product.badge}
                   </span>
 
-                  {product.discount && (
+                  {product.originalPrice > product.price && (
                     <span
                       className="tarika-badge"
                       style={{
@@ -213,7 +213,7 @@ export default function NewArrivalsSection() {
                         color: '#FFFFFF'
                       }}
                     >
-                      {product.discount}
+                      ₹{(product.originalPrice - product.price).toLocaleString('en-IN')} OFF
                     </span>
                   )}
                 </div>

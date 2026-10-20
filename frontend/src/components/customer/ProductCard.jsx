@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, ShoppingBag, Zap, Check, Eye } from 'lucide-react';
 import { useCustomer } from '../../context/CustomerContext';
+import { getProductPricing } from '../../utils/pricing';
 
 export default function ProductCard({ product, onCardClick }) {
   const { isWishlisted, toggleWishlist, addToBag, openProductDetail } = useCustomer();
@@ -13,19 +14,7 @@ export default function ProductCard({ product, onCardClick }) {
   const wishlisted = isWishlisted(productId);
   const productName = product.product_name || product.name || 'Artisanal Garment';
 
-  // Calculate pricing & discount
-  const basePrice = Number(product.base_price || product.selling_price || 0);
-  const salePrice = product.sale_price !== undefined && product.sale_price !== null
-    ? Number(product.sale_price)
-    : (product.selling_price !== undefined ? Number(product.selling_price) : basePrice);
-  const isOnSale = (product.is_on_sale || salePrice < basePrice) && salePrice < basePrice;
-  const currentPrice = isOnSale ? salePrice : (salePrice || basePrice);
-
-  const discountPercent = isOnSale && basePrice > 0
-    ? Math.round(((basePrice - salePrice) / basePrice) * 100)
-    : product.discount_percentage
-    ? Math.round(Number(product.discount_percentage))
-    : 0;
+  const { basePrice, currentPrice, discountAmount, isOnSale } = getProductPricing(product);
 
   // Club special price (5% lower than current price for VIP feel)
   const clubPrice = Math.round(currentPrice * 0.95);
@@ -88,9 +77,9 @@ export default function ProductCard({ product, onCardClick }) {
         />
 
         {/* Sale Discount Badge */}
-        {isOnSale && discountPercent > 0 && (
+        {isOnSale && discountAmount > 0 && (
           <span className="product-badge-sale">
-            {discountPercent}% OFF
+            ₹{discountAmount.toLocaleString('en-IN')} OFF
           </span>
         )}
 
