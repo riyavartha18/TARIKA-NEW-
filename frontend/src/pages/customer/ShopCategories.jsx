@@ -12,6 +12,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import ProductCard from '../../components/customer/ProductCard';
+import { getProductPricing } from '../../utils/pricing';
 import { getCategories, getProducts } from '../../services/api';
 
 // Creative Presentation metadata matching the attached reference image
@@ -228,9 +229,7 @@ export default function ShopCategories() {
     // Sale filter
     if (onlySale) {
       list = list.filter((p) => {
-        const base = Number(p.base_price || 0);
-        const sale = Number(p.selling_price || p.sale_price || base);
-        return p.is_on_sale || sale < base;
+        return getProductPricing(p).isOnSale;
       });
     }
 

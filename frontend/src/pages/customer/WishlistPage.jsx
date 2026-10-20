@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingBag, Trash2, ArrowRight, Sparkles, Check } from 'lucide-react';
 import { useCustomer } from '../../context/CustomerContext';
+import { getProductPricing } from '../../utils/pricing';
 
 export default function WishlistPage() {
   const { wishlistItems, wishlistLoading, toggleWishlist, addToBag, openProductDetail } = useCustomer();
@@ -90,10 +91,7 @@ export default function WishlistPage() {
           }}
         >
           {wishlistItems.map((item) => {
-            const basePrice = Number(item.base_price || 0);
-            const salePrice = item.sale_price ? Number(item.sale_price) : null;
-            const isOnSale = item.is_on_sale && salePrice && salePrice < basePrice;
-            const currentPrice = isOnSale ? salePrice : basePrice;
+            const { basePrice, currentPrice, isOnSale } = getProductPricing(item);
             const isOutOfStock = item.total_stock !== undefined && item.total_stock <= 0;
             const isBusy = movingId === item.product_id;
 

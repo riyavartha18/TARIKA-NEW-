@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { Sparkles, Flame, Tag, Check, SlidersHorizontal, ChevronRight } from 'lucide-react';
 import ProductCard from '../../components/customer/ProductCard';
+import { getProductPricing } from '../../utils/pricing';
 import {
   getNewArrivals,
   getTrending,
@@ -108,7 +109,7 @@ export default function ProductListingPage({ type }) {
 
           if (maxPrice) {
             list = list.filter((p) => {
-              const pr = p.is_on_sale && p.sale_price ? Number(p.sale_price) : Number(p.base_price);
+              const pr = getProductPricing(p).currentPrice;
               return pr <= Number(maxPrice);
             });
           }
@@ -116,14 +117,14 @@ export default function ProductListingPage({ type }) {
           // Sort
           if (selectedSort === 'price_asc') {
             list.sort((a, b) => {
-              const pa = a.is_on_sale && a.sale_price ? Number(a.sale_price) : Number(a.base_price);
-              const pb = b.is_on_sale && b.sale_price ? Number(b.sale_price) : Number(b.base_price);
+              const pa = getProductPricing(a).currentPrice;
+              const pb = getProductPricing(b).currentPrice;
               return pa - pb;
             });
           } else if (selectedSort === 'price_desc') {
             list.sort((a, b) => {
-              const pa = a.is_on_sale && a.sale_price ? Number(a.sale_price) : Number(a.base_price);
-              const pb = b.is_on_sale && b.sale_price ? Number(b.sale_price) : Number(b.base_price);
+              const pa = getProductPricing(a).currentPrice;
+              const pb = getProductPricing(b).currentPrice;
               return pb - pa;
             });
           }
