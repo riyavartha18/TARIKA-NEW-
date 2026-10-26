@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import demandForecastingVisual from '../../assets/demand_forecasting_visual.png';
 import { useAuth } from '../../auth/AuthContext';
-import { getDemandPredictionAnalytics, getSlowMovingInventory, getRevenueForecast } from '../../services/api';
+import {
+  getDemandPredictionAnalytics,
+  getSlowMovingInventory,
+  getRevenueForecast,
+  getAdminBIDemandForecast,
+} from '../../services/api';
 import {
   BrainCircuit,
   Search,
@@ -19,6 +25,7 @@ import {
   IndianRupee,
   Wallet,
   TrendingUp,
+  Minus,
 } from 'lucide-react';
 import '../../styles/admin-portal.css';
 
@@ -28,8 +35,15 @@ export default function AdminAnalyticsView() {
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
 
-  // Active view: 'overview' | 'demand_forecasting' | 'slow_inventory'
+  // Active view: 'overview' | 'demand_forecasting' | 'slow_inventory' | 'revenue_forecasting'
   const [activeView, setActiveView] = useState('overview');
+
+  // Deep-link support: the dashboard can navigate here requesting a specific view.
+  const location = useLocation();
+  useEffect(() => {
+    const requested = location.state?.openView;
+    if (requested) setActiveView(requested);
+  }, [location.state]);
 
   // Filters for product predictions table
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,8 +70,16 @@ export default function AdminAnalyticsView() {
   const [revenueSortKey, setRevenueSortKey] = useState('expected_revenue');
   const [revenueSortDirection, setRevenueSortDirection] = useState('desc');
 
+  // === Demand Forecasting — demand trend insights ===
+  const [forecastInsights, setForecastInsights] = useState(null);
+
   // Currency formatting helper (matches existing admin convention: ₹ + en-IN grouping)
   const formatINR = (val) => `₹${Number(val || 0).toLocaleString('en-IN')}`;
+  const formatNum = (val) => `${Math.round(Number(val) || 0).toLocaleString('en-IN')}`;
+  // Never fabricate a missing DB value — render an explicit placeholder.
+  const displayNum = (val) => (val === null || val === undefined ? '—' : val);
+
+  const resolveToken = () => authContextToken || localStorage.getItem('iras_token') || localStorage.getItem('token') || localStorage.getItem('tarika_auth_token');
 
   const fetchAnalyticsData = async () => {
     setLoading(true);
@@ -95,13 +117,33 @@ export default function AdminAnalyticsView() {
     }
   };
 
-  // Only fetch when first opening the detail view
-  const handleOpenDetailView = () => {
-    setActiveView('demand_forecasting');
-    if (!data) {
-      fetchAnalyticsData();
+  // === Demand trend (predicted next-month demand vs observed) ===
+  const fetchForecastInsights = async () => {
+    try {
+      const res = await getAdminBIDemandForecast(resolveToken());
+      if (res.success) setForecastInsights(res.data);
+    } catch (err) {
+      // Demand Trend card stays hidden when insights are unavailable.
     }
   };
+
+  const refreshDemandForecasting = () => {
+    fetchAnalyticsData();
+    fetchForecastInsights();
+  };
+
+  const handleOpenDetailView = () => {
+    setActiveView('demand_forecasting');
+  };
+
+  // Load all Demand Forecasting data when the view opens (button click or deep link).
+  useEffect(() => {
+    if (activeView === 'demand_forecasting') {
+      if (!data) fetchAnalyticsData();
+      if (!forecastInsights) fetchForecastInsights();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeView]);
 
   const handleOpenSlowInventoryView = () => {
     setActiveView('slow_inventory');
@@ -168,9 +210,9 @@ export default function AdminAnalyticsView() {
     const numericKeys = new Set([
       'product_key',
       'latest_units_sold',
-      'latest_cart_quantity',
-      'latest_wishlist_count',
-      'latest_notify_me_count',
+      'total_cart_quantity',
+      'total_wishlist_count',
+      'total_notify_me_count',
       'latest_discount_percentage',
     ]);
     const aValue = a[sortKey] ?? (numericKeys.has(sortKey) ? 0 : '');
@@ -185,11 +227,12 @@ export default function AdminAnalyticsView() {
     { key: 'product_key', label: 'Product Key' },
     { key: 'product_name', label: 'Product Name' },
     { key: 'category_name', label: 'Category' },
+    { key: 'latest_record_month', label: 'Latest Record Month' },
     { key: 'latest_units_sold', label: 'Latest Month Sold' },
-    { key: 'latest_cart_quantity', label: 'Latest Cart Qty' },
-    { key: 'latest_wishlist_count', label: 'Latest Wishlist' },
-    { key: 'latest_notify_me_count', label: 'Latest Notify Me' },
-    { key: 'latest_discount_percentage', label: 'Discount Amount (₹)' },
+    { key: 'total_cart_quantity', label: 'Cart Quantity' },
+    { key: 'total_wishlist_count', label: 'Wishlist Count' },
+    { key: 'total_notify_me_count', label: 'Notify Me Count' },
+    { key: 'latest_discount_percentage', label: 'Latest Discount %' },
     { key: 'predicted_demand', label: 'Predicted Next-Month Demand' },
   ];
 
@@ -714,18 +757,18 @@ export default function AdminAnalyticsView() {
                   Demand Forecasting Results
                 </h1>
                 <p style={{ color: '#6B5E63', fontSize: '0.88rem', margin: 0 }}>
-                  Next-month product demand predictions derived from historical database records.
+                  Live demand signals from Supabase fact_demand + next-month predictions from the Decision-Tree engine.
                 </p>
               </div>
             </div>
 
             <button
-              onClick={fetchAnalyticsData}
+              onClick={refreshDemandForecasting}
               className="tarika-btn-outline"
               style={{ padding: '0.55rem 1.1rem', fontSize: '0.82rem' }}
             >
               <RefreshCw size={14} />
-              <span>Refresh Predictions</span>
+              <span>Refresh Signals &amp; Predictions</span>
             </button>
           </div>
 
@@ -793,6 +836,30 @@ export default function AdminAnalyticsView() {
                   Historical Data up to: <strong style={{ color: '#1F191B' }}>{summary.latest_historical_month || 'September 2026'}</strong>
                 </div>
               </div>
+
+              {/* ============================================================
+                  DEMAND TREND (predicted next-month demand vs observed)
+                 ============================================================ */}
+              {forecastInsights && !forecastInsights.insufficient_data && (
+                <div className="admin-card" style={{ marginBottom: '1.5rem', padding: '1.1rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                    {forecastInsights.demand_trend?.direction === 'increasing' ? <TrendingUp size={22} color="#059669" />
+                      : forecastInsights.demand_trend?.direction === 'decreasing' ? <TrendingDown size={22} color="#DC2626" />
+                      : <Minus size={22} color="#2563EB" />}
+                    <div>
+                      <h3 style={{ margin: 0, fontSize: '1rem', color: '#1F191B', fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}>
+                        Demand Trend: <span style={{ textTransform: 'capitalize', color: forecastInsights.demand_trend?.direction === 'increasing' ? '#059669' : forecastInsights.demand_trend?.direction === 'decreasing' ? '#DC2626' : '#2563EB' }}>{forecastInsights.demand_trend?.direction || 'stable'}</span>
+                        {forecastInsights.demand_trend?.change_pct != null && (
+                          <span style={{ fontSize: '0.85rem', color: '#6B5E63' }}> ({forecastInsights.demand_trend.change_pct > 0 ? '+' : ''}{forecastInsights.demand_trend.change_pct}% observed)</span>
+                        )}
+                      </h3>
+                      <p style={{ margin: '0.15rem 0 0', fontSize: '0.8rem', color: '#6B5E63' }}>
+                        Predicted next-month demand: <strong style={{ color: '#B8505E' }}>{formatNum(forecastInsights.summary?.total_predicted_units_next_month)} units</strong> ({forecastInsights.forecast_month_label}) · {forecastInsights.demand_trend?.note}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Metrics Grid */}
               <div className="admin-metrics-grid" style={{ marginBottom: '1.5rem' }}>
@@ -952,16 +1019,20 @@ export default function AdminAnalyticsView() {
                               <span style={{ color: '#6B5E63', fontSize: '0.85rem' }}>{p.category_name}</span>
                             </td>
                             <td>
-                              <span style={{ fontWeight: 700, color: '#1F191B' }}>{p.latest_units_sold ?? p.units_sold}</span>
+                              <span style={{ fontSize: '0.78rem', fontWeight: p.has_demand_history ? 600 : 400, color: p.has_demand_history ? '#1F191B' : '#9E8F94' }}>
+                                {p.latest_record_month || 'No data'}
+                              </span>
                             </td>
-                            <td>{p.latest_cart_quantity ?? p.cart_quantity}</td>
-                            <td>{p.latest_wishlist_count ?? p.wishlist_count}</td>
-                            <td>{p.latest_notify_me_count ?? p.notify_me_count ?? 0}</td>
                             <td>
-                              {Math.min(
-                                100,
-                                Math.max(0, Number(p.latest_discount_percentage ?? p.discount_percentage) || 0)
-                              ).toFixed(2)}%
+                              <span style={{ fontWeight: 700, color: '#1F191B' }}>{displayNum(p.latest_units_sold ?? p.units_sold)}</span>
+                            </td>
+                            <td>{displayNum(p.total_cart_quantity)}</td>
+                            <td>{displayNum(p.total_wishlist_count)}</td>
+                            <td>{displayNum(p.total_notify_me_count)}</td>
+                            <td>
+                              {(p.latest_discount_percentage ?? p.discount_percentage) == null
+                                ? '—'
+                                : `${Math.min(100, Math.max(0, Number(p.latest_discount_percentage ?? p.discount_percentage) || 0)).toFixed(2)}%`}
                             </td>
                             <td>
                               <span className="admin-metric-status" style={statusStyle}>
@@ -984,7 +1055,7 @@ export default function AdminAnalyticsView() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', fontSize: '0.82rem', color: '#6B5E63' }}>
                 <span>Showing <strong>{filteredProducts.length}</strong> of {totalCount} catalog products</span>
-                <span>Dataset Source: <code style={{ fontSize: '0.75rem' }}>public.fact_demand</code> (Supabase)</span>
+                <span>Dataset Source: <code style={{ fontSize: '0.75rem' }}>public.fact_demand</code> (Supabase) · Cart Quantity / Wishlist Count / Notify Me Count = SUM across every fact_demand record per product (no latest-month filter)</span>
               </div>
             </>
           )}

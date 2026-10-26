@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   LineAreaChart,
   BarList,
@@ -11,24 +11,20 @@ import {
   SectionEmpty,
   SectionError,
   StatusPill,
-  KpiCard,
   fmtINR,
   fmtNum,
 } from './BIPrimitives';
 import {
   Sparkles,
   TrendingUp,
+  TrendingDown,
+  Minus,
   ArrowRight,
   AlertTriangle,
   CheckCircle2,
   Info,
   CalendarClock,
   Boxes,
-  Heart,
-  BellRing,
-  ShoppingCart,
-  Activity,
-  Search,
 } from 'lucide-react';
 
 /* --- shared helpers ------------------------------------------------------- */
@@ -93,153 +89,116 @@ export function RevenueForecastSection({ loading, error, onRetry, data }) {
 }
 
 /* ==========================================================================
-   2. DEMAND FORECASTING
+   2. DEMAND FORECASTING — compact overview
+   (Detailed Wishlist / Add-to-Cart / Notify-Me live in Admin Analysis.)
    ========================================================================== */
-/* --- sortable table header + id helpers ----------------------------------- */
-const shortId = (id = '') => (id.length > 8 ? `${id.slice(0, 8)}…` : id);
+export function DemandOverviewSection({ loading, error, onRetry, data, onOpenAnalysis }) {
+  const trend = data?.demand_trend || {};
+  const summary = data?.summary || {};
 
-function SortableTh({ label, col, sortKey, sortDir, onSort, numeric = false }) {
-  const active = sortKey === col;
-  return (
-    <th
-      className={`bi-th-sort ${active ? 'active' : ''}`}
-      onClick={() => onSort(col)}
-      title={`Sort by ${label}`}
-    >
-      <span>{label}</span>
-      <span className="bi-sort-arrow">{active ? (sortDir === 'asc' ? '▲' : '▼') : (numeric ? '' : '')}</span>
-    </th>
-  );
-}
+  const chartData = (trend.series || []).map((m) => ({
+    label: shortMonth(m.label), actual: m.units, forecast: null,
+  }));
+  if (trend.predicted_next_month_units != null) {
+    chartData.push({ label: 'Forecast', actual: null, forecast: trend.predicted_next_month_units });
+  }
 
-export function DemandForecastSection({ loading, error, onRetry, data }) {
-  const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState('total_signals');
-  const [sortDir, setSortDir] = useState('desc');
+  const dirMeta = trend.direction === 'increasing'
+    ? { tone: 'positive', Icon: TrendingUp, label: 'Increasing' }
+    : trend.direction === 'decreasing'
+      ? { tone: 'critical', Icon: TrendingDown, label: 'Decreasing' }
+      : { tone: 'info', Icon: Minus, label: 'Stable' };
 
-  const totals = data?.totals || {};
-
-  const products = useMemo(() => {
-    const rows = (data?.products || []).slice();
-    const q = search.trim().toLowerCase();
-    const filtered = q
-      ? rows.filter((p) =>
-          (p.product_name || '').toLowerCase().includes(q) ||
-          (p.product_id || '').toLowerCase().includes(q))
-      : rows;
-    filtered.sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      let cmp;
-      if (typeof av === 'string') cmp = av.localeCompare(bv);
-      else cmp = (Number(av) || 0) - (Number(bv) || 0);
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-    return filtered;
-  }, [data, search, sortKey, sortDir]);
-
-  const toggleSort = (col) => {
-    if (col === sortKey) {
-      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortKey(col);
-      setSortDir(col === 'product_name' ? 'asc' : 'desc');
-    }
-  };
-
-  const statusTone = (s) => (
-    s === 'High Interest' ? 'positive'
-      : s === 'Moderate Interest' ? 'info'
-        : s === 'Low Interest' ? 'warning' : 'neutral'
-  );
+  const highDemand = (data?.high_demand_products || []).slice(0, 4);
+  const restock = data?.restock_recommendations || [];
+  const restockTotal = restock.reduce((s, p) => s + (p.need_to_order || 0), 0);
+  const TrendIcon = dirMeta.Icon;
 
   return (
     <SectionCard
       id="demand-forecast"
       icon={Boxes}
       title="Demand Forecasting"
-      subtitle="Live customer-interest signals from fact_demand"
-      actions={data && !data.insufficient_data && data.window && (
-        <span className="bi-note-chip">{data.window.description}</span>
+      subtitle={data && !data.insufficient_data ? `Snapshot · forecast month: ${data.forecast_month_label}` : 'Snapshot of expected demand'}
+      actions={(
+        <button className="bi-link-btn" onClick={onOpenAnalysis}>
+          View Detailed Analysis <ArrowRight size={14} />
+        </button>
       )}
     >
-      {loading && <SectionSpinner label="Loading live demand signals…" />}
+      {loading && <SectionSpinner label="Loading demand snapshot…" />}
       {!loading && error && <SectionError label={error} onRetry={onRetry} />}
       {!loading && data && data.insufficient_data && (
         <div className="bi-insufficient">
           <CalendarClock size={18} />
           <div>
-            <strong>Live demand signals unavailable</strong>
+            <strong>Demand forecast unavailable</strong>
             <p>{data.message}</p>
           </div>
         </div>
       )}
       {!loading && data && !data.insufficient_data && (
         <>
-          <div className="bi-signal-cards">
-            <KpiCard icon={Heart} title="Wishlist Count" value={fmtNum(totals.wishlist)} accent="#B8505E" />
-            <KpiCard icon={BellRing} title="Notify Me Count" value={fmtNum(totals.notify_me)} accent="#7C3AED" />
-            <KpiCard icon={ShoppingCart} title="Add to Cart Count" value={fmtNum(totals.add_to_cart)} accent="#2563EB" />
-            <KpiCard
-              icon={Activity}
-              title="Total Demand Signals"
-              value={fmtNum(totals.total_signals)}
-              sub={`${fmtNum(totals.products)} products`}
-              accent="#059669"
-            />
-          </div>
-
-          {data.metric_definition && <p className="bi-footnote">{data.metric_definition}</p>}
-
-          <div className="bi-table-controls">
-            <div className="bi-search">
-              <Search size={15} />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search product name or ID…"
-              />
+          <div className="bi-demand-summary">
+            <div>
+              <span className="bi-demand-big">{fmtNum(summary.total_predicted_units_next_month)}<span className="bi-demand-unit"> units</span></span>
+              <span className="bi-demand-caption">Expected next-month demand · {data.forecast_month_label} · <strong>predicted</strong></span>
             </div>
-            <span className="bi-count">Showing {Math.min(products.length, 60)} of {products.length}</span>
+            <div className="bi-demand-trend">
+              <span className={`bi-trend-chip bi-trend-chip-${dirMeta.tone}`}>
+                <TrendIcon size={15} /> Demand {dirMeta.label.toLowerCase()}
+                {trend.change_pct != null && ` (${trend.change_pct > 0 ? '+' : ''}${trend.change_pct}%)`}
+              </span>
+              <span className="bi-demand-caption">
+                {summary.high_demand_count || 0} high · {summary.low_demand_count || 0} low demand products
+              </span>
+            </div>
           </div>
 
-          {products.length === 0 ? (
-            <SectionEmpty label="No products match your search." />
+          <div className="bi-two-col" style={{ marginTop: '1.15rem' }}>
+            <div>
+              <p className="bi-sub-head">Demand trend <span className="bi-tag-predicted">actual + predicted</span></p>
+              {chartData.length > 1 ? (
+                <LineAreaChart data={chartData} height={180} formatValue={(v) => `${fmtNum(v)} u`} />
+              ) : <SectionEmpty label="Not enough demand history to chart a trend." />}
+              {trend.note && <p className="bi-footnote">{trend.note}</p>}
+            </div>
+            <div>
+              <p className="bi-sub-head">High-demand products <span className="bi-tag-predicted">predicted</span></p>
+              {highDemand.length ? (
+                <BarList
+                  data={highDemand.map((p) => ({
+                    label: p.product_name,
+                    value: p.predicted_units_next_month,
+                    sub: `${p.predicted_demand} · stock ${p.current_stock}`,
+                  }))}
+                  formatValue={(v) => `${v} u`}
+                  color={CHART_COLORS.positive}
+                  emptyText="No high-demand products."
+                />
+              ) : <SectionEmpty label="No high-demand products forecast." />}
+            </div>
+          </div>
+
+          {restock.length > 0 ? (
+            <div className="bi-alert bi-alert-warning">
+              <AlertTriangle size={17} />
+              <div>
+                <strong>Stock recommendation</strong>
+                <p>
+                  {summary.restock_count || restock.length} high-demand product(s) may need restocking (≈ {fmtNum(restockTotal)} units). Top: {restock.slice(0, 3).map((p) => `${p.product_name} (+${p.need_to_order})`).join(', ')}.
+                </p>
+              </div>
+            </div>
           ) : (
-            <div className="admin-table-wrapper">
-              <table className="admin-table bi-table bi-sortable">
-                <thead>
-                  <tr>
-                    <SortableTh label="Product" col="product_name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                    <th>Product ID</th>
-                    <SortableTh label="Wishlist" col="wishlist" numeric sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                    <SortableTh label="Notify Me" col="notify_me" numeric sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                    <SortableTh label="Add to Cart" col="add_to_cart" numeric sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                    <SortableTh label="Total Signals" col="total_signals" numeric sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-                    <th>Demand Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.slice(0, 60).map((p) => (
-                    <tr key={p.product_id}>
-                      <td>
-                        <div className="bi-cell-name">{p.product_name}</div>
-                        <div className="bi-cell-cat">{p.category_name}</div>
-                      </td>
-                      <td className="bi-cell-mono bi-cell-dim" title={p.product_id}>{shortId(p.product_id)}</td>
-                      <td>{p.wishlist}</td>
-                      <td>{p.notify_me}</td>
-                      <td>{p.add_to_cart}</td>
-                      <td className="bi-cell-strong">{p.total_signals}</td>
-                      <td><StatusPill tone={statusTone(p.demand_status)}>{p.demand_status}</StatusPill></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="bi-alert bi-alert-ok">
+              <CheckCircle2 size={17} />
+              <div>
+                <strong>Stock levels cover forecast demand</strong>
+                <p>No restocking alert for the current forecast.</p>
+              </div>
             </div>
           )}
-
-          {data.demand_status_rule && <p className="bi-footnote">{data.demand_status_rule}</p>}
         </>
       )}
     </SectionCard>

@@ -416,15 +416,33 @@ class DecisionTreeEngine:
             p_color = cat_row[4]
             base_price = float(cat_row[5] or 0)
 
+            def _format_month(dt_value):
+                if dt_value is None:
+                    return None
+                try:
+                    return f"{MONTH_NAMES[dt_value.month - 1]} {dt_value.year}"
+                except (AttributeError, IndexError, ValueError):
+                    return str(dt_value)
+
             if p_key in product_records and product_records[p_key]:
                 recs_sorted = sorted(product_records[p_key], key=lambda x: x['month_start'])
                 latest_rec = recs_sorted[-1]
+                has_history = True
+                # The month of THIS product's own most recent fact_demand record.
+                latest_record_month = _format_month(latest_rec['month_start'])
                 latest_units = round(latest_rec['units_sold'], 2)
                 latest_cart = round(latest_rec['cart_quantity'], 2)
                 latest_wishlist = round(latest_rec['wishlist_count'], 2)
                 latest_discount_amount = latest_rec['discount_amount']
                 latest_discount = round(latest_rec['discount_percentage'], 2)
                 latest_notify = round(latest_rec['notify_me_count'], 2)
+                # ACTUAL counts stored in fact_demand for THIS product, summed
+                # across every one of its monthly records (no latest-month /
+                # latest-record filter). fact_demand keeps one row per
+                # product per month, so the SUM preserves the real granularity.
+                total_wishlist = round(sum(rec['wishlist_count'] for rec in recs_sorted), 2)
+                total_cart = round(sum(rec['cart_quantity'] for rec in recs_sorted), 2)
+                total_notify = round(sum(rec['notify_me_count'] for rec in recs_sorted), 2)
                 sample = {
                     'units_sold': latest_rec['units_sold'],
                     'cart_quantity': latest_rec['cart_quantity'],
@@ -433,12 +451,22 @@ class DecisionTreeEngine:
                     'notify_me_count': latest_rec['notify_me_count']
                 }
             else:
-                latest_units = 0.0
-                latest_cart = 0.0
-                latest_wishlist = 0.0
-                latest_discount_amount = 0.0
-                latest_discount = 0.0
-                latest_notify = 0.0
+                # No fact_demand history for this product: do NOT fabricate counts.
+                # The observed indicator values are null; only the model's tier
+                # prediction is produced (from a zero feature vector).
+                has_history = False
+                latest_record_month = None
+                latest_units = None
+                latest_cart = None
+                latest_wishlist = None
+                latest_discount_amount = None
+                latest_discount = None
+                latest_notify = None
+                # No fact_demand rows for this product: SUM over zero rows is
+                # NULL in SQL, so render as '—' instead of fabricating counts.
+                total_wishlist = None
+                total_cart = None
+                total_notify = None
                 sample = {
                     'units_sold': 0.0,
                     'cart_quantity': 0.0,
@@ -462,13 +490,21 @@ class DecisionTreeEngine:
                 'size': p_size,
                 'color': p_color,
                 'base_price': base_price,
-                'latest_historical_month': latest_month_period,
+                'has_demand_history': has_history,
+                # The actual month the "Latest" values come from (per product).
+                'latest_record_month': latest_record_month,
+                'latest_historical_month': latest_record_month or latest_month_period,
                 'latest_units_sold': latest_units,
                 'latest_cart_quantity': latest_cart,
                 'latest_wishlist_count': latest_wishlist,
                 'latest_discount_amount': latest_discount_amount,
                 'latest_discount_percentage': latest_discount,
                 'latest_notify_me_count': latest_notify,
+                # Per-product SUM(wishlist_count) / SUM(cart_quantity) /
+                # SUM(notify_me_count) across ALL fact_demand records.
+                'total_wishlist_count': total_wishlist,
+                'total_cart_quantity': total_cart,
+                'total_notify_me_count': total_notify,
                 'units_sold': latest_units,
                 'cart_quantity': latest_cart,
                 'wishlist_count': latest_wishlist,

@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import datetime
 from collections import defaultdict
+from statistics import median
 
 from django.db import connection
 
@@ -624,12 +625,79 @@ def build_demand_forecast():
         key=lambda p: p['need_to_order'], reverse=True,
     )
 
+    # Demand TREND indicator. The trend is measured from ACTUAL observed demand
+    # (monthly units_sold in fact_demand) using a smoothed basis (average of the
+    # 3 most recent COMPLETED months vs the 3 before them). The latest calendar
+    # month is excluded when it is clearly a partial month (volume far below the
+    # typical median) so it cannot falsely look like a collapse/spike. The
+    # PREDICTED next-month demand is reported separately and never mixed into
+    # the actual-trend calculation. Direction thresholds: +/-5%.
+    demand_trend = {
+        'direction': 'stable',
+        'change_pct': None,
+        'basis': '3-month average of completed months vs the prior 3 months (observed demand)',
+        'latest_complete_month': None,
+        'latest_actual_units': None,
+        'excluded_partial_month': None,
+        'predicted_next_month_units': total_next_month_units,
+        'series': [],
+        'note': None,
+    }
+    try:
+        monthly = _monthly_actual_revenue_series()  # {period,label,revenue,units}
+        if monthly:
+            units_all = [int(m['units'] or 0) for m in monthly]
+            labels_all = [m['label'] for m in monthly]
+            med = median(units_all) if units_all else 0
+
+            trend_units = units_all
+            trend_labels = labels_all
+            if len(units_all) >= 2 and med > 0 and units_all[-1] < 0.25 * med:
+                # Trailing month looks like an in-progress month -> exclude it.
+                demand_trend['excluded_partial_month'] = labels_all[-1]
+                trend_units = units_all[:-1]
+                trend_labels = labels_all[:-1]
+
+            n = len(trend_units)
+            if n >= 1:
+                demand_trend['latest_actual_units'] = trend_units[-1]
+                demand_trend['latest_complete_month'] = trend_labels[-1]
+            recent = trend_units[-3:] if n >= 3 else trend_units
+            prior = trend_units[-6:-3] if n >= 6 else (trend_units[:-3] if n > 3 else [])
+            recent_avg = (sum(recent) / len(recent)) if recent else 0
+            prior_avg = (sum(prior) / len(prior)) if prior else 0
+
+            if prior_avg > 0:
+                change = round((recent_avg - prior_avg) / prior_avg * 100, 1)
+                demand_trend['change_pct'] = change
+                if change > 5:
+                    demand_trend['direction'] = 'increasing'
+                elif change < -5:
+                    demand_trend['direction'] = 'decreasing'
+                else:
+                    demand_trend['direction'] = 'stable'
+
+            start = max(0, n - 6)
+            demand_trend['series'] = [
+                {'label': trend_labels[i], 'units': trend_units[i]} for i in range(start, n)
+            ]
+            demand_trend['note'] = (
+                f"Observed demand trend across completed months"
+                f"{(' (latest partial month ' + demand_trend['excluded_partial_month'] + ' excluded)') if demand_trend['excluded_partial_month'] else ''}"
+                f"{(' through ' + demand_trend['latest_complete_month']) if demand_trend['latest_complete_month'] else ''}."
+            )
+        else:
+            demand_trend['note'] = 'No actual demand history available to establish a trend.'
+    except Exception:
+        demand_trend['note'] = 'Demand trend could not be computed from the available data.'
+
     return {
         'insufficient_data': False,
         'message': None,
         'granularity': 'monthly',
         'forecast_month': forecast_month,
         'forecast_month_label': forecast_month_label,
+        'demand_trend': demand_trend,
         'summary': {
             'total_products_forecasted': len(products_out),
             'high_demand_count': len(high_demand),

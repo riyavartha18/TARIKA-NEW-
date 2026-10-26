@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import {
   getAdminBIOverview,
   getAdminBIRevenueForecast,
   getAdminBIDemandForecast,
-  getAdminBIDemandSignals,
 } from '../../services/api';
 import { generateInsights } from '../../utils/insights';
 import '../../styles/bi-dashboard.css';
@@ -16,7 +16,7 @@ import {
 } from './bi/BIPrimitives';
 import {
   RevenueForecastSection,
-  DemandForecastSection,
+  DemandOverviewSection,
   InventoryHealthSection,
   SalesPerformanceSection,
   InsightsPanel,
@@ -54,10 +54,8 @@ export default function AdminDashboardView() {
   const [revError, setRevError] = useState(null);
 
   const [demand, setDemand] = useState(null);
-
-  const [signals, setSignals] = useState(null);
-  const [sigLoading, setSigLoading] = useState(true);
-  const [sigError, setSigError] = useState(null);
+  const [demLoading, setDemLoading] = useState(true);
+  const [demError, setDemError] = useState(null);
 
   const firstName = user?.first_name?.trim();
   const lastName = user?.last_name?.trim();
@@ -67,6 +65,7 @@ export default function AdminDashboardView() {
     : (fullName || 'Admin');
 
   const activeToken = token || localStorage.getItem('tarika_auth_token');
+  const navigate = useNavigate();
 
   const loadOverview = useCallback(async (d) => {
     setOvLoading(true);
@@ -87,19 +86,15 @@ export default function AdminDashboardView() {
   }, [activeToken]);
 
   const loadDemand = useCallback(async () => {
-    // Forecast demand feeds the Smart Insights panel (kept separate from the
-    // live demand-signal cards shown in the Demand Forecasting section).
+    // Demand forecast powers the dashboard's compact Demand Forecasting overview
+    // AND the Smart Insights panel. Live Wishlist/Cart/Notify detail lives in
+    // Admin Analysis, so it is intentionally not fetched here.
+    setDemLoading(true);
+    setDemError(null);
     const res = await getAdminBIDemandForecast(activeToken);
     if (res.success) setDemand(res.data);
-  }, [activeToken]);
-
-  const loadSignals = useCallback(async () => {
-    setSigLoading(true);
-    setSigError(null);
-    const res = await getAdminBIDemandSignals(activeToken, { months: 3 });
-    if (res.success) setSignals(res.data);
-    else setSigError(res.error);
-    setSigLoading(false);
+    else setDemError(res.error);
+    setDemLoading(false);
   }, [activeToken]);
 
   // Overview is re-fetched whenever the date range changes.
@@ -108,20 +103,22 @@ export default function AdminDashboardView() {
   useEffect(() => {
     loadRevenue();
     loadDemand();
-    loadSignals();
-  }, [loadRevenue, loadDemand, loadSignals]);
+  }, [loadRevenue, loadDemand]);
 
   const refreshAll = () => {
     loadOverview(days);
     loadRevenue();
     loadDemand();
-    loadSignals();
   };
 
   const handleNavigate = (sectionId) => {
     if (!sectionId) return;
     const el = document.getElementById(sectionId);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const openDemandAnalysis = () => {
+    navigate('/admin/analytics', { state: { openView: 'demand_forecasting' } });
   };
 
   const kpis = overview?.kpis || {};
@@ -230,8 +227,14 @@ export default function AdminDashboardView() {
         <InsightsPanel insights={insights} onNavigate={handleNavigate} />
       </div>
 
-      {/* Demand forecasting (live signals) */}
-      <DemandForecastSection loading={sigLoading} error={sigError} onRetry={loadSignals} data={signals} />
+      {/* Demand forecasting (compact overview; details in Admin Analysis) */}
+      <DemandOverviewSection
+        loading={demLoading}
+        error={demError}
+        onRetry={loadDemand}
+        data={demand}
+        onOpenAnalysis={openDemandAnalysis}
+      />
 
       {/* Inventory health + Sales performance */}
       <SalesPerformanceSection

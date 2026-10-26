@@ -172,6 +172,7 @@
 /* --- Demand signal cards & table controls -------------------------------- */
 .bi-signal-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 .bi-signal-cards .bi-kpi-card { margin: 0; }
+.bi-filter-group { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
 .bi-table-controls { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0 0.75rem; flex-wrap: wrap; }
 .bi-search { display: flex; align-items: center; gap: 0.5rem; background: var(--bi-surface-alt); border: 1px solid var(--bi-border); border-radius: 10px; padding: 0.45rem 0.7rem; color: var(--bi-faint); }
 .bi-search input { border: none; background: transparent; outline: none; font-size: 0.82rem; color: var(--bi-ink); min-width: 180px; font-family: inherit; }
@@ -234,6 +235,29 @@
 @keyframes spin { to { transform: rotate(360deg); } }
 .bi-retry-btn { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--bi-border); background: #fff; color: var(--bi-rose); border-radius: 8px; padding: 0.35rem 0.7rem; font-size: 0.76rem; font-weight: 700; cursor: pointer; }
 .bi-retry-btn:hover { background: var(--bi-rose); color: #fff; }
+
+/* --- Demand overview (compact dashboard snapshot) ------------------------ */
+.bi-link-btn { display: inline-flex; align-items: center; gap: 0.4rem; background: transparent; border: 1px solid var(--bi-border); color: var(--bi-rose-deep); font-size: 0.78rem; font-weight: 700; padding: 0.4rem 0.8rem; border-radius: 9px; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+.bi-link-btn:hover { background: var(--bi-rose); color: #fff; border-color: var(--bi-rose); }
+.bi-demand-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.15rem; background: var(--bi-surface-alt); border: 1px solid rgba(216, 114, 126, 0.12); border-radius: 14px; }
+.bi-demand-summary > div { display: flex; flex-direction: column; gap: 0.25rem; }
+.bi-demand-trend { align-items: flex-start; }
+.bi-demand-big { font-family: 'Playfair Display', Georgia, serif; font-size: 2rem; font-weight: 800; color: var(--bi-ink); line-height: 1.05; }
+.bi-demand-unit { font-size: 1.05rem; color: var(--bi-faint); font-weight: 700; }
+.bi-demand-caption { font-size: 0.76rem; color: var(--bi-muted); }
+.bi-tag-predicted { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bi-faint); background: #FAF0F1; border: 1px solid var(--bi-border); border-radius: 9999px; padding: 0.1rem 0.45rem; margin-left: 0.4rem; vertical-align: middle; }
+.bi-trend-chip { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.92rem; font-weight: 800; padding: 0.35rem 0.7rem; border-radius: 9999px; }
+.bi-trend-chip-positive { background: #ECFDF5; color: #047857; }
+.bi-trend-chip-critical { background: #FEF2F2; color: #B91C1C; }
+.bi-trend-chip-info { background: #EFF6FF; color: #1D4ED8; }
+.bi-alert { display: flex; align-items: flex-start; gap: 0.75rem; margin-top: 1.15rem; padding: 0.9rem 1.1rem; border-radius: 12px; border: 1px solid transparent; }
+.bi-alert strong { display: block; font-size: 0.85rem; margin-bottom: 0.15rem; }
+.bi-alert p { margin: 0; font-size: 0.78rem; line-height: 1.5; }
+.bi-alert svg { margin-top: 2px; flex-shrink: 0; }
+.bi-alert-warning { background: #FFFBEB; border-color: #FDE68A; color: #92400E; }
+.bi-alert-warning strong { color: #78350F; }
+.bi-alert-ok { background: #ECFDF5; border-color: #A7F3D0; color: #065F46; }
+.bi-alert-ok strong { color: #047857; }
 
 /* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 1200px) {
