@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 /**
  * Universal Login for all user types: Customer, Admin, Warehouse Manager, Delivery Partner.
@@ -1340,14 +1340,26 @@ export async function getDemandPredictionAnalytics(token, params = {}) {
     const qs = query.toString();
     const url = `${API_BASE_URL}/api/demand-prediction/analytics/${qs ? '?' + qs : ''}`;
     const response = await fetch(url, { headers });
-    const data = await response.json();
+    const responseBody = await response.text();
+    let data;
+    try {
+      data = responseBody ? JSON.parse(responseBody) : {};
+    } catch {
+      return {
+        success: false,
+        error: `Demand prediction API returned a non-JSON response (HTTP ${response.status}).`,
+      };
+    }
 
     if (!response.ok) {
       return { success: false, error: data.error || data.detail || 'Failed to fetch demand prediction analytics.' };
     }
     return { success: true, ...data };
   } catch (err) {
-    return { success: false, error: 'Network error fetching demand prediction analytics.' };
+    return {
+      success: false,
+      error: `Unable to reach demand prediction API: ${err.message}`,
+    };
   }
 }
 
@@ -1432,7 +1444,11 @@ export async function getSlowMovingInventory(token, params = {}) {
     const query = new URLSearchParams();
     if (params.search) query.append('search', params.search);
     if (params.movement_status && params.movement_status !== 'ALL') query.append('movement_status', params.movement_status);
+    if (params.category_label && params.category_label !== 'ALL') query.append('category_label', params.category_label);
     if (params.warehouse_id && params.warehouse_id !== 'ALL') query.append('warehouse_id', params.warehouse_id);
+    if (params.sales_window_days) query.append('sales_window_days', params.sales_window_days);
+    if (params.slow_days) query.append('slow_days', params.slow_days);
+    if (params.overstock_days) query.append('overstock_days', params.overstock_days);
 
     const qs = query.toString();
     const url = `${API_BASE_URL}/api/demand-prediction/slow-inventory/${qs ? '?' + qs : ''}`;
@@ -1445,5 +1461,101 @@ export async function getSlowMovingInventory(token, params = {}) {
     return { success: true, ...data };
   } catch (err) {
     return { success: false, error: 'Network error fetching slow-moving inventory data.' };
+  }
+}
+
+/* ==========================================================================
+   ADMIN BUSINESS-INTELLIGENCE (BI) DASHBOARD API HELPERS
+   ========================================================================== */
+
+/**
+ * KPIs (with period-over-period growth), inventory health and sales
+ * performance for the selected date range.
+ * @param {string} token
+ * @param {{ days?: number }} params
+ */
+export async function getAdminBIOverview(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const query = new URLSearchParams();
+    if (params.days) query.append('days', params.days);
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/bi/overview/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || data.error || 'Failed to load dashboard overview.' };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching dashboard overview.' };
+  }
+}
+
+/**
+ * Historical (actual) monthly revenue + OLS forecast with derived 7/30-day
+ * figures. Returns an `insufficient_data` flag when history is too short.
+ */
+export async function getAdminBIRevenueForecast(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const query = new URLSearchParams();
+    if (params.horizon) query.append('horizon', params.horizon);
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/bi/revenue-forecast/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || data.error || 'Failed to load revenue forecast.' };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching revenue forecast.' };
+  }
+}
+
+/**
+ * Product-wise demand forecast, high/low demand movers and restock
+ * recommendations (reuses the OLS stock forecast + Decision-Tree tiers).
+ */
+export async function getAdminBIDemandForecast(token) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/api/admin/bi/demand-forecast/`, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || data.error || 'Failed to load demand forecast.' };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching demand forecast.' };
+  }
+}
+
+/**
+ * Live customer-interest demand signals (Wishlist / Notify-Me / Add-to-Cart)
+ * aggregated directly from the fact_demand table in Supabase.
+ * @param {string} token
+ * @param {{ months?: number }} params - trailing time window (default 3)
+ */
+export async function getAdminBIDemandSignals(token, params = {}) {
+  try {
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const query = new URLSearchParams();
+    if (params.months) query.append('months', params.months);
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/admin/bi/demand-signals/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url, { headers });
+    const data = await response.json();
+    if (!response.ok) {
+      return { success: false, error: data.detail || data.error || 'Failed to load demand signals.' };
+    }
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: 'Network error fetching demand signals.' };
   }
 }

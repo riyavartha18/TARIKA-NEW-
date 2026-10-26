@@ -13,11 +13,22 @@ from admin.views import (
     AdminStaffToggleStatusView,
     AdminWarehouseListView,
 )
+from admin.bi_views import (
+    AdminBIDemandForecastView,
+    AdminBIDemandSignalsView,
+    AdminBIOverviewView,
+    AdminBIRevenueForecastView,
+)
 
 app_name = 'admin_module'
 
 urlpatterns = [
     path('dashboard/', AdminDashboardStatsView.as_view(), name='dashboard'),
+    # Business-Intelligence dashboard endpoints (admin only)
+    path('bi/overview/', AdminBIOverviewView.as_view(), name='bi-overview'),
+    path('bi/revenue-forecast/', AdminBIRevenueForecastView.as_view(), name='bi-revenue-forecast'),
+    path('bi/demand-forecast/', AdminBIDemandForecastView.as_view(), name='bi-demand-forecast'),
+    path('bi/demand-signals/', AdminBIDemandSignalsView.as_view(), name='bi-demand-signals'),
     path('staff/', AdminStaffListView.as_view(), name='staff-list'),
     path('staff/create/', AdminCreateStaffView.as_view(), name='staff-create'),
     path('staff/<int:employee_id>/toggle-status/', AdminStaffToggleStatusView.as_view(), name='staff-toggle-status'),

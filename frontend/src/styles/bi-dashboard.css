@@ -1,0 +1,253 @@
+/* ==========================================================================
+   TARIKA ADMIN — BUSINESS INTELLIGENCE DASHBOARD STYLES
+   Extends the existing admin design system (colors, typography, cards).
+   ========================================================================== */
+
+:root {
+  --bi-ink: #1F191B;
+  --bi-muted: #6B5E63;
+  --bi-faint: #9E8F94;
+  --bi-rose: #B8505E;
+  --bi-rose-deep: #8E3642;
+  --bi-border: rgba(216, 114, 126, 0.18);
+  --bi-surface: #FFFFFF;
+  --bi-surface-alt: #FAF7F5;
+}
+
+/* --- Hero + controls ----------------------------------------------------- */
+.bi-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+.bi-hero-controls { display: flex; align-items: center; gap: 0.65rem; }
+.bi-range-group {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(216, 114, 126, 0.35);
+  border-radius: 12px;
+  padding: 3px;
+}
+.bi-range-btn {
+  border: none;
+  background: transparent;
+  color: #D6C7CC;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.5rem 0.9rem;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.bi-range-btn:hover { color: #fff; }
+.bi-range-btn.active { background: #D8727E; color: #fff; box-shadow: 0 3px 10px rgba(216, 114, 126, 0.35); }
+.bi-refresh-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 40px; border-radius: 11px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(216, 114, 126, 0.35);
+  color: #F7C6CC; cursor: pointer; transition: all 0.2s ease;
+}
+.bi-refresh-btn:hover { background: #D8727E; color: #fff; }
+
+/* --- KPI grid ------------------------------------------------------------ */
+.bi-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+.bi-kpi-card {
+  background: var(--bi-surface);
+  border: 1px solid var(--bi-border);
+  border-radius: 16px;
+  padding: 1.25rem 1.35rem;
+  display: flex; flex-direction: column; gap: 0.85rem;
+  box-shadow: 0 4px 20px rgba(31, 25, 27, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.bi-kpi-card:hover { transform: translateY(-3px); border-color: rgba(216, 114, 126, 0.4); box-shadow: 0 8px 28px rgba(184, 80, 94, 0.1); }
+.bi-kpi-top { display: flex; align-items: center; justify-content: space-between; }
+.bi-kpi-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.bi-kpi-title { margin: 0; font-size: 0.74rem; font-weight: 800; color: var(--bi-faint); text-transform: uppercase; letter-spacing: 0.06em; }
+.bi-kpi-value { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 1.7rem; font-weight: 800; color: var(--bi-ink); line-height: 1.1; }
+.bi-kpi-sub { margin: 0; font-size: 0.74rem; color: var(--bi-muted); }
+
+/* --- Trend badge --------------------------------------------------------- */
+.bi-trend { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 800; padding: 0.22rem 0.55rem; border-radius: 9999px; }
+.bi-trend-suffix { font-weight: 600; opacity: 0.75; font-size: 0.68rem; margin-left: 0.15rem; }
+.bi-trend-positive { background: #ECFDF5; color: #047857; }
+.bi-trend-negative { background: #FEF2F2; color: #B91C1C; }
+.bi-trend-flat { background: var(--bi-surface-alt); color: var(--bi-faint); }
+
+/* --- Section cards ------------------------------------------------------- */
+.bi-section-card {
+  background: var(--bi-surface);
+  border: 1px solid var(--bi-border);
+  border-radius: 18px;
+  padding: 1.4rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(31, 25, 27, 0.03);
+  margin-bottom: 1.75rem;
+  scroll-margin-top: 90px;
+}
+.bi-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.15rem; padding-bottom: 0.85rem; border-bottom: 1px solid rgba(216, 114, 126, 0.12); flex-wrap: wrap; }
+.bi-section-title-group { display: flex; align-items: flex-start; gap: 0.65rem; }
+.bi-section-icon { width: 32px; height: 32px; border-radius: 9px; background: #FAF0F1; color: var(--bi-rose); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bi-section-title { margin: 0; font-family: 'Playfair Display', Georgia, serif; font-size: 1.12rem; font-weight: 700; color: var(--bi-ink); }
+.bi-section-subtitle { margin: 2px 0 0; font-size: 0.76rem; color: var(--bi-muted); }
+.bi-section-actions { display: flex; align-items: center; gap: 0.6rem; }
+
+/* --- Layout grids -------------------------------------------------------- */
+.bi-grid-2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.75rem; }
+.bi-grid-2 > .bi-section-card { margin-bottom: 1.75rem; }
+.bi-grid-sales { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1.5rem; }
+.bi-grid-sales.two { grid-template-columns: 1fr 1fr; }
+.bi-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.25rem; }
+.bi-col { min-width: 0; }
+
+/* --- Stat chips ---------------------------------------------------------- */
+.bi-forecast-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.85rem; margin-bottom: 1.25rem; }
+.bi-mini-stat { background: var(--bi-surface-alt); border: 1px solid rgba(216, 114, 126, 0.14); border-radius: 12px; padding: 0.8rem 0.95rem; display: flex; flex-direction: column; gap: 0.2rem; }
+.bi-mini-stat-label { font-size: 0.7rem; font-weight: 700; color: var(--bi-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+.bi-mini-stat-value { font-family: 'Playfair Display', Georgia, serif; font-size: 1.25rem; font-weight: 800; color: var(--bi-ink); }
+.bi-note-chip { font-size: 0.7rem; font-weight: 700; color: var(--bi-rose-deep); background: #FAF0F1; border: 1px solid var(--bi-border); padding: 0.25rem 0.6rem; border-radius: 9999px; }
+.bi-footnote { font-size: 0.72rem; color: var(--bi-faint); margin: 0.85rem 0 0; line-height: 1.5; }
+.bi-sub-head { display: flex; align-items: center; gap: 0.35rem; font-size: 0.76rem; font-weight: 800; color: var(--bi-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 0.7rem; }
+.bi-empty-note { font-size: 0.8rem; color: var(--bi-faint); font-style: italic; }
+
+.bi-insufficient { display: flex; align-items: flex-start; gap: 0.75rem; background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 12px; padding: 1rem 1.15rem; color: #92400E; }
+.bi-insufficient strong { display: block; color: #78350F; font-size: 0.88rem; margin-bottom: 0.2rem; }
+.bi-insufficient p { margin: 0; font-size: 0.8rem; line-height: 1.5; }
+.bi-insufficient svg { margin-top: 2px; flex-shrink: 0; }
+
+/* --- Charts -------------------------------------------------------------- */
+.bi-chart { width: 100%; }
+.bi-chart-legend { display: flex; gap: 1.1rem; margin-bottom: 0.6rem; }
+.bi-legend-item { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.76rem; font-weight: 700; color: var(--bi-muted); }
+.bi-legend-item i { width: 14px; height: 4px; border-radius: 2px; display: inline-block; }
+.bi-legend-dashed { width: 14px !important; height: 0 !important; border-top: 3px dashed; border-radius: 0 !important; }
+.bi-linechart-wrap { width: 100%; }
+.bi-linechart-svg { display: block; overflow: visible; }
+.bi-axis-text { font-size: 11px; fill: var(--bi-faint); font-weight: 600; }
+.bi-tooltip {
+  position: absolute; transform: translateX(-50%);
+  background: #1F191B; color: #fff; border-radius: 10px;
+  padding: 0.5rem 0.7rem; font-size: 0.74rem; pointer-events: none;
+  box-shadow: 0 8px 24px rgba(31, 25, 27, 0.25); white-space: nowrap; z-index: 5;
+}
+.bi-tooltip-title { font-weight: 800; margin-bottom: 0.25rem; }
+.bi-tooltip-row { display: flex; align-items: center; gap: 0.4rem; }
+.bi-tooltip-row i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+/* Donut */
+.bi-donut-wrap { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.bi-donut-svg { flex-shrink: 0; }
+.bi-donut-center-value { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 800; fill: var(--bi-ink); }
+.bi-donut-center-label { font-size: 10px; font-weight: 700; fill: var(--bi-faint); text-transform: uppercase; }
+.bi-donut-legend { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 160px; }
+.bi-legend-row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; padding: 0.2rem 0.3rem; border-radius: 8px; cursor: default; }
+.bi-legend-row:hover { background: var(--bi-surface-alt); }
+.bi-legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.bi-legend-label { flex: 1; color: var(--bi-muted); font-weight: 600; }
+.bi-legend-value { font-weight: 800; color: var(--bi-ink); }
+
+/* Bar list */
+.bi-barlist { display: flex; flex-direction: column; gap: 0.85rem; }
+.bi-barlist-row { display: flex; align-items: center; gap: 0.7rem; }
+.bi-barlist-img, .bi-barlist-rank { width: 34px; height: 34px; border-radius: 9px; object-fit: cover; flex-shrink: 0; }
+.bi-barlist-rank { background: var(--bi-surface-alt); color: var(--bi-rose-deep); font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; }
+.bi-barlist-body { flex: 1; min-width: 0; }
+.bi-barlist-top { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.bi-barlist-label { font-size: 0.82rem; font-weight: 700; color: var(--bi-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bi-barlist-value { font-size: 0.8rem; font-weight: 800; color: var(--bi-rose-deep); flex-shrink: 0; }
+.bi-barlist-track { height: 7px; background: #FAF0F1; border-radius: 9999px; overflow: hidden; margin: 0.3rem 0; }
+.bi-barlist-fill { height: 100%; border-radius: 9999px; transition: width 0.4s ease; }
+.bi-barlist-sub { font-size: 0.7rem; color: var(--bi-faint); }
+
+/* --- Demand signal cards & table controls -------------------------------- */
+.bi-signal-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.bi-signal-cards .bi-kpi-card { margin: 0; }
+.bi-table-controls { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0 0.75rem; flex-wrap: wrap; }
+.bi-search { display: flex; align-items: center; gap: 0.5rem; background: var(--bi-surface-alt); border: 1px solid var(--bi-border); border-radius: 10px; padding: 0.45rem 0.7rem; color: var(--bi-faint); }
+.bi-search input { border: none; background: transparent; outline: none; font-size: 0.82rem; color: var(--bi-ink); min-width: 180px; font-family: inherit; }
+.bi-count { font-size: 0.75rem; color: var(--bi-faint); font-weight: 700; }
+.bi-sortable .bi-th-sort { cursor: pointer; user-select: none; }
+.bi-sortable .bi-th-sort:hover,
+.bi-sortable .bi-th-sort.active { color: var(--bi-rose-deep); }
+.bi-sort-arrow { margin-left: 0.3rem; font-size: 0.65rem; }
+
+/* --- Tabs & selects ------------------------------------------------------ */
+.bi-tabs { display: inline-flex; background: var(--bi-surface-alt); border: 1px solid var(--bi-border); border-radius: 10px; padding: 3px; }
+.bi-tab { border: none; background: transparent; color: var(--bi-muted); font-size: 0.76rem; font-weight: 700; padding: 0.4rem 0.75rem; border-radius: 7px; cursor: pointer; transition: all 0.2s ease; }
+.bi-tab.active { background: var(--bi-rose); color: #fff; }
+.bi-select { border: 1px solid var(--bi-border); border-radius: 9px; background: #fff; color: var(--bi-ink); font-size: 0.78rem; font-weight: 600; padding: 0.4rem 0.6rem; cursor: pointer; }
+
+/* --- Tables -------------------------------------------------------------- */
+.bi-table { font-size: 0.8rem; }
+.bi-cell-name { font-weight: 700; color: var(--bi-ink); }
+.bi-cell-cat { font-size: 0.7rem; color: var(--bi-faint); }
+.bi-cell-strong { font-weight: 800; color: var(--bi-rose); }
+.bi-cell-action { color: var(--bi-muted); font-size: 0.76rem; max-width: 220px; }
+.bi-cell-mono { font-family: monospace; font-weight: 700; }
+.bi-cell-dim { color: var(--bi-muted); }
+.bi-cell-product { display: flex; align-items: center; gap: 0.6rem; }
+.bi-thumb { width: 34px; height: 34px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: var(--bi-surface-alt); }
+.bi-thumb-empty { display: flex; align-items: center; justify-content: center; color: var(--bi-faint); }
+.bi-restock { margin-top: 1.25rem; }
+.bi-recent-orders { margin-top: 1.25rem; }
+
+/* --- Inventory health ---------------------------------------------------- */
+.bi-health-summary { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.15rem; }
+.bi-health-top { display: flex; align-items: center; gap: 1.75rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.bi-health-top .bi-health-summary { flex-direction: column; align-items: flex-start; gap: 0.5rem; margin-bottom: 0; }
+.bi-health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem; }
+.bi-health-col { min-width: 0; }
+.bi-health-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.bi-health-list li { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0.55rem; background: var(--bi-surface-alt); border: 1px solid rgba(216, 114, 126, 0.1); border-radius: 9px; }
+.bi-health-name { font-size: 0.78rem; font-weight: 700; color: var(--bi-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+.bi-health-meta { font-size: 0.7rem; color: var(--bi-muted); flex-shrink: 0; }
+
+/* --- Status pill --------------------------------------------------------- */
+.bi-status-pill { display: inline-block; padding: 0.18rem 0.55rem; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; border: 1px solid transparent; white-space: nowrap; }
+
+/* --- Insights ------------------------------------------------------------ */
+.bi-insights { display: flex; flex-direction: column; gap: 0.7rem; }
+.bi-insight { display: flex; align-items: flex-start; gap: 0.75rem; width: 100%; text-align: left; background: var(--bi-surface-alt); border: 1px solid rgba(216, 114, 126, 0.12); border-radius: 13px; padding: 0.85rem 0.95rem; cursor: pointer; transition: all 0.2s ease; font-family: inherit; }
+.bi-insight:hover { border-color: rgba(216, 114, 126, 0.4); transform: translateX(3px); box-shadow: 0 4px 16px rgba(184, 80, 94, 0.08); }
+.bi-insight-icon { width: 32px; height: 32px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.bi-insight-body { display: flex; flex-direction: column; gap: 0.15rem; flex: 1; min-width: 0; }
+.bi-insight-title { font-size: 0.84rem; font-weight: 800; color: var(--bi-ink); }
+.bi-insight-reason { font-size: 0.75rem; color: var(--bi-muted); }
+.bi-insight-action { font-size: 0.72rem; color: var(--bi-rose-deep); font-weight: 700; }
+.bi-insight-link { color: var(--bi-faint); align-self: center; flex-shrink: 0; }
+
+/* --- States -------------------------------------------------------------- */
+.bi-state-block { display: flex; align-items: center; justify-content: center; gap: 0.6rem; padding: 1.75rem 1rem; font-size: 0.85rem; color: var(--bi-muted); font-weight: 600; flex-wrap: wrap; text-align: center; }
+.bi-state-empty { font-style: italic; color: var(--bi-faint); }
+.bi-state-error { color: #B91C1C; }
+.bi-spinner { width: 22px; height: 22px; border: 3px solid rgba(216, 114, 126, 0.25); border-top-color: var(--bi-rose); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.bi-retry-btn { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--bi-border); background: #fff; color: var(--bi-rose); border-radius: 8px; padding: 0.35rem 0.7rem; font-size: 0.76rem; font-weight: 700; cursor: pointer; }
+.bi-retry-btn:hover { background: var(--bi-rose); color: #fff; }
+
+/* --- Responsive ---------------------------------------------------------- */
+@media (max-width: 1200px) {
+  .bi-grid-sales { grid-template-columns: 1fr 1fr; }
+  .bi-grid-sales:not(.two) > .bi-col:first-child { grid-column: 1 / -1; }
+}
+@media (max-width: 1024px) {
+  .bi-grid-2 { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 720px) {
+  .bi-two-col, .bi-grid-sales { grid-template-columns: 1fr; }
+  .bi-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .bi-hero-controls { width: 100%; justify-content: space-between; }
+}
+@media (max-width: 480px) {
+  .bi-kpi-grid { grid-template-columns: 1fr; }
+}
