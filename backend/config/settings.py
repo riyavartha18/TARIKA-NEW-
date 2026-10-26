@@ -57,7 +57,9 @@ INSTALLED_APPS = [
     'stock_to_be_ordered.apps.StockToBeOrderedConfig',
     'revenue_forecasting.apps.RevenueForecastingConfig',
     'recommendations.apps.RecommendationsConfig',
+    'wardrobe.apps.WardrobeConfig',
 ]
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',

@@ -56,6 +56,14 @@ urlpatterns = [
             namespace='recommendations'
         )
     ),
+    path(
+        'api/wardrobe/',
+        include(
+            ('wardrobe.urls', 'wardrobe'),
+            namespace='wardrobe'
+        )
+    ),
 ]
+
 
 # Reload URLconf: registered warehouse app routes

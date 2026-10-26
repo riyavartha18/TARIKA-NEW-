@@ -30,11 +30,12 @@ class CatalogService:
                     0
                 ),
                 dim_selling_price=RawSQL(
-                    '(SELECT dp.selling_price FROM dim_product dp '
-                    'WHERE dp.product_id = products.product_id LIMIT 1)',
+                    'COALESCE((SELECT dp.selling_price FROM dim_product dp '
+                    'WHERE dp.product_id = products.product_id LIMIT 1), products.selling_price)',
                     [],
                     output_field=BigIntegerField(),
                 ),
+
             )
         )
 

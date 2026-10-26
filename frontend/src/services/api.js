@@ -1447,3 +1447,46 @@ export async function getSlowMovingInventory(token, params = {}) {
     return { success: false, error: 'Network error fetching slow-moving inventory data.' };
   }
 }
+
+/**
+ * Fetch AI-curated Smart Budget Stylist outfits based on budget, occasion, style, and fashion direction.
+ */
+export async function getSmartStylistLooks(params = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.budget) query.append('budget', params.budget);
+    if (params.occasion) query.append('occasion', params.occasion);
+    if (params.style) query.append('style', params.style);
+    if (params.fashion_direction) query.append('fashion_direction', params.fashion_direction);
+    if (params.preferred_colors && params.preferred_colors.length > 0) {
+      query.append('preferred_colors', Array.isArray(params.preferred_colors) ? params.preferred_colors.join(',') : params.preferred_colors);
+    }
+    if (params.sort_by) query.append('sort_by', params.sort_by);
+    if (params.limit) query.append('limit', params.limit);
+
+    const qs = query.toString();
+    const url = `${API_BASE_URL}/api/recommendations/stylist/${qs ? '?' + qs : ''}`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: data.detail || data.error || 'Failed to generate styled outfits.',
+        outfits: [],
+      };
+    }
+
+    return {
+      success: true,
+      ...data,
+    };
+  } catch (err) {
+    return {
+      success: false,
+      error: 'Network connection issue. Please ensure the backend server is reachable.',
+      outfits: [],
+    };
+  }
+}
+

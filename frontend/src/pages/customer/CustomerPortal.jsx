@@ -15,6 +15,8 @@ import CheckoutPage from './CheckoutPage';
 import OrderConfirmationPage from './OrderConfirmationPage';
 import MyOrdersPage from './MyOrdersPage';
 import ProfilePage from './ProfilePage';
+import SmartBudgetStylistPage from './SmartBudgetStylistPage';
+
 
 // Portal CSS
 import '../../styles/tarika.css';
@@ -53,7 +55,9 @@ export default function CustomerPortal() {
           <Routes>
             <Route index element={<CustomerHome />} />
             <Route path="shop" element={<ShopCategories />} />
+            <Route path="stylist" element={<SmartBudgetStylistPage insideCustomerPortal={true} />} />
             <Route path="new-in" element={<ProductListingPage type="new-in" />} />
+
             <Route path="trending" element={<ProductListingPage type="trending" />} />
             <Route path="sale" element={<ProductListingPage type="sale" />} />
             <Route path="wishlist" element={<WishlistPage />} />

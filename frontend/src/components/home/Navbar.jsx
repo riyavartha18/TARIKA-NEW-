@@ -165,34 +165,44 @@ export default function Navbar() {
             Collections
           </a>
 
-          <a
-            href="#promos"
+          <Link
+            to="/stylist"
             style={{
               textDecoration: 'none',
               fontSize: '0.88rem',
-              fontWeight: 700,
-              color: '#D8727E',
-              letterSpacing: '0.04em',
+              fontWeight: 600,
+              color: '#B8505E',
+              letterSpacing: '0.02em',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.35rem'
+              gap: '0.4rem',
+              transition: 'all 0.2s ease',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '6px',
             }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#8E3642')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#B8505E')}
           >
-            Sale
+            <Sparkles size={14} color="#B8505E" />
+            <span>Smart Budget Stylist</span>
             <span
               style={{
                 fontSize: '0.62rem',
-                backgroundColor: '#D8727E',
-                color: '#ffffff',
-                padding: '0.1rem 0.4rem',
+                backgroundColor: '#FDECEF',
+                color: '#B8505E',
+                border: '1px solid rgba(216, 114, 126, 0.35)',
+                padding: '0.12rem 0.45rem',
                 borderRadius: '9999px',
-                fontWeight: 700
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                lineHeight: 1,
               }}
             >
-              50% OFF
+              NEW
             </span>
-          </a>
+          </Link>
         </nav>
+
 
         {/* Right: Search, Wishlist, Bag, Auth Buttons */}
         <div

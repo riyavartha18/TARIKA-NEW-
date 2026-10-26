@@ -1,13 +1,11 @@
 import logging
 from decimal import Decimal
 from django.db import connection, transaction
-import pandas as pd
-from mlxtend.preprocessing import TransactionEncoder
-from mlxtend.frequent_patterns import apriori, association_rules
 
 from catalog.models import Product
 from catalog.serializers import get_product_image_url
 from .models import ProductRecommendation
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,12 +24,33 @@ class RecommendationService:
     DEFAULT_MIN_CONFIDENCE = 0.0
 
     @classmethod
+    def _get_ml_dependencies(cls):
+        """
+        Dynamically imports pandas and mlxtend for offline Apriori rule mining.
+        Provides a clear, actionable error message if packages are not installed.
+        """
+        try:
+            import pandas as pd
+            from mlxtend.preprocessing import TransactionEncoder
+            from mlxtend.frequent_patterns import apriori, association_rules
+            return pd, TransactionEncoder, apriori, association_rules
+        except ImportError as e:
+            missing_pkg = getattr(e, 'name', str(e))
+            raise RuntimeError(
+                f"Missing dependency for offline recommendation mining ({missing_pkg}). "
+                f"To run association rule updates, install the required packages using: "
+                f"pip install pandas mlxtend"
+            )
+
+    @classmethod
     def fetch_delivered_order_items(cls):
         """
         Executes a SQL query joining orders, order_items, and products
         for orders with status 'delivered'.
         Returns a pandas DataFrame with columns: order_id, product_id, product_name.
         """
+        pd, _, _, _ = cls._get_ml_dependencies()
+
         query = """
         SELECT
             o.order_id,
@@ -91,6 +110,8 @@ class RecommendationService:
 
         Returns a dictionary containing pipeline results, metadata, and the rule records.
         """
+        pd, TransactionEncoder, apriori, association_rules = cls._get_ml_dependencies()
+
         df = cls.fetch_delivered_order_items()
 
         delivered_orders_count = int(df['order_id'].nunique()) if not df.empty else 0
@@ -143,6 +164,7 @@ class RecommendationService:
             min_support=min_support,
             use_colnames=True
         )
+
 
         frequent_itemsets_count = len(frequent_itemsets)
 
