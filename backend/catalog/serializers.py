@@ -101,6 +101,8 @@ TEST_PRODUCT_IMAGE_OVERRIDES = {
     '8f000001-0000-4000-8000-000000000017': '/images/products/8f000001-0000-4000-8000-000000000017.jpg',
     '8f000001-0000-4000-8000-000000000018': '/images/products/8f000001-0000-4000-8000-000000000018.jpg',
     '8f000001-0000-4000-8000-000000000019': '/images/products/8f000001-0000-4000-8000-000000000019.jpg',
+    'cf68a905-1572-5ec0-9079-cbf58964f110': '/images/products/cf68a905-1572-5ec0-9079-cbf58964f110.png',
+    '1ec857b2-44d1-5524-bd36-cc70b61c476f': '/images/products/1ec857b2-44d1-5524-bd36-cc70b61c476f.png',
 }
 
 
@@ -390,4 +392,3 @@ class CategoryGroupedProductsSerializer(serializers.ModelSerializer):
 
     def get_product_count(self, obj):
         return obj.products.filter(is_active=True).count()
-

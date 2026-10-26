@@ -1,0 +1,532 @@
+[
+  {
+    "id": "28c1ecd3-7800-4559-b2fe-1d1e0e44bbf8",
+    "name": "Wedge Ankle Boots",
+    "category": "Footwear",
+    "color": "Peach",
+    "gender": "women",
+    "material": "Chiffon",
+    "description": "Wedge Ankle Boots in peach, chiffon blend, ankle boots style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "bdc9968a-ecea-4758-b237-9f9a132a4353",
+    "name": "Formal Flip-Flops",
+    "category": "Footwear",
+    "color": "Charcoal",
+    "gender": "men",
+    "material": "Georgette",
+    "description": "Formal Flip-Flops in charcoal, georgette blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "b168b583-8f7e-4285-8e84-eb215d3d0f04",
+    "name": "Running Sandals",
+    "category": "Footwear",
+    "color": "Rust",
+    "gender": "unisex",
+    "material": "Denim",
+    "description": "Running Sandals in rust, denim blend, sandals style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "d5b8ee29-fab4-43bf-9608-f8da20c0ce2e",
+    "name": "Ankle Flip-Flops",
+    "category": "Footwear",
+    "color": "Mustard",
+    "gender": "unisex",
+    "material": "Rayon",
+    "description": "Ankle Flip-Flops in mustard, rayon blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "9b300165-d603-42db-adad-390eb826fda9",
+    "name": "Casual Loafers",
+    "category": "Footwear",
+    "color": "Grey",
+    "gender": "men",
+    "material": "Georgette",
+    "description": "Casual Loafers in grey, georgette blend, loafers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "a0f28c88-6bb9-56d0-956c-a89589697afc",
+    "name": "Beige Braided Jute Casual Slip-on Flats",
+    "category": "Footwear",
+    "color": "Beige",
+    "gender": "women",
+    "material": "Cotton",
+    "description": "Eco-conscious braided jute and natural cotton everyday flats with anti-skid rubber sole.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "cefcab71-af55-5558-8f7c-decfda65ddbe",
+    "name": "Black Threadwork Embroidered Jutti",
+    "category": "Footwear",
+    "color": "Black",
+    "gender": "women",
+    "material": "Cotton",
+    "description": "Midnight black jutti with colourful Kashmiri thread needlework motifs. Versatile with jeans or sarees.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "66e3e253-4158-505b-a67a-28351cc35144",
+    "name": "Emerald Green Velvet Sequin Slip-ons",
+    "category": "Footwear",
+    "color": "Emerald Green",
+    "gender": "women",
+    "material": "Blended",
+    "description": "Deep forest green velvet flat mule jutti with subtle champagne gold sequin shimmer.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "7f65b95b-878a-5a4e-bdd6-39e810f65ede",
+    "name": "Golden Zardozi Embroidered Punjabi Jutti",
+    "category": "Footwear",
+    "color": "Gold",
+    "gender": "women",
+    "material": "Silk",
+    "description": "Handcrafted genuine leather sole Punjabi jutti embellished with intricate gold zari, beads, and dabka work.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "75d66966-7e34-59f4-8f99-b04e58324eb4",
+    "name": "Maroon Velvet Royal Mojari Shoes",
+    "category": "Footwear",
+    "color": "Maroon",
+    "gender": "men",
+    "material": "Blended",
+    "description": "Royal velvet sherwani mojaris with curved toe and antique brass thread zardozi embroidery.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "31203eec-93a8-50c8-99e3-9dc939b52770",
+    "name": "Men Gold Textured Brocade Wedding Nagra",
+    "category": "Footwear",
+    "color": "Gold",
+    "gender": "men",
+    "material": "Silk",
+    "description": "Rich metallic gold brocade pointed nagra shoe tailored to match wedding and sangeet kurtas.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "fec16381-873a-57d9-a7f9-40de6845d857",
+    "name": "Men Handcrafted Tan Peshawari Chappal",
+    "category": "Footwear",
+    "color": "Tan",
+    "gender": "men",
+    "material": "Leather",
+    "description": "Traditional semi-closed Peshawari sandal with cross-over leather straps and durable Goodyear welt sole.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "58d6fd0b-e2f5-55f9-98d7-167347163ad2",
+    "name": "Mirror Work Pastel Pink Festive Jutti",
+    "category": "Footwear",
+    "color": "Pink",
+    "gender": "women",
+    "material": "Cotton",
+    "description": "Blush pink jutti featuring glistening real glass mirror-work and dual-density memory foam insole.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "5c4fbfa6-37b7-5b7c-b7a5-6aaa14424c59",
+    "name": "Mustard Gota Patti Ankle-Strap Mojari",
+    "category": "Footwear",
+    "color": "Mustard",
+    "gender": "women",
+    "material": "Silk",
+    "description": "Bright turmeric yellow jutti with adjustable ankle-strap and delicate gold gota leaf work.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "09701191-a728-5b6d-a70d-88d72de45e97",
+    "name": "Off-White Pearl Encrusted Bridal Jutti",
+    "category": "Footwear",
+    "color": "Off-White",
+    "gender": "women",
+    "material": "Silk",
+    "description": "Couture raw silk bridal jutti with pearl clusters and sequin spray. Double-cushioned bite-free collar.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "e1e3e2d4-b776-5c27-ad15-242059a1d37a",
+    "name": "Red Zari Border Bridal Khussa",
+    "category": "Footwear",
+    "color": "Red",
+    "gender": "women",
+    "material": "Silk",
+    "description": "Traditional sindoori red khussa jutti adorned with gold salma and sitara hand-embroidery.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "bcfc1f18-6437-5474-b251-3568d821b31c",
+    "name": "Silver Metallic Cutwork Kolhapuri Flats",
+    "category": "Footwear",
+    "color": "Silver",
+    "gender": "women",
+    "material": "Blended",
+    "description": "Modernized silver metallic Kolhapuri slip-on sandal with geometric laser cutwork and soft footbed.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "1d0fec9f-b642-584b-a77d-998e4c21bb78",
+    "name": "Tan Brown Braided Leather Kolhapuri Chappals",
+    "category": "Footwear",
+    "color": "Tan",
+    "gender": "men",
+    "material": "Leather",
+    "description": "Authentic Kolhapuri flat sandals with braided strap and T-ring toe loop. Hand-stitched with vegetable tan leather.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "9b1a5727-3a00-5181-bcb9-dea1ca4a41ee",
+    "name": "Teal Floral Printed Mules with Tassels",
+    "category": "Footwear",
+    "color": "Teal",
+    "gender": "women",
+    "material": "Cotton",
+    "description": "Backless mule jutti in peacock teal canvas with miniature hanging silk tassels.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "20478596-b089-5d99-aaee-4b26e576b07c",
+    "name": "Wine Velvet Kundan Studded Jutti",
+    "category": "Footwear",
+    "color": "Wine",
+    "gender": "women",
+    "material": "Silk",
+    "description": "Rich burgundy wine velvet base with hand-set kundan stones and tiny gold seed beads.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "24915be0-9c52-41a3-9099-bd30744c580b",
+    "name": "Running Flip-Flops",
+    "category": "Footwear",
+    "color": "Peach",
+    "gender": "unisex",
+    "material": "Rayon",
+    "description": "Running Flip-Flops in peach, rayon blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "d661b02e-24b8-4978-bd7f-85309000423a",
+    "name": "Running Sports Shoes",
+    "category": "Footwear",
+    "color": "Beige",
+    "gender": "women",
+    "material": "Wool",
+    "description": "Running Sports Shoes in beige, wool blend, sports shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "8f000001-0000-4000-8000-000000000016",
+    "name": "Embroidered Marigold Mojari Juttis",
+    "category": "Footwear",
+    "color": "Mustard",
+    "gender": "Women",
+    "material": "Silk Brocade",
+    "description": "Authentic Rajasthani hand-embroidered mojari juttis in festive marigold mustard yellow.",
+    "current_image": "/images/products/8f000001-0000-4000-8000-000000000016.jpg"
+  },
+  {
+    "id": "8f000001-0000-4000-8000-000000000015",
+    "name": "Minimalist White Slip-On Mules",
+    "category": "Footwear",
+    "color": "White",
+    "gender": "Women",
+    "material": "Faux Leather",
+    "description": "Pointed toe flat slip-on mules in clean ivory white. Sleek minimal footwear for western and formal outfits.",
+    "current_image": "/images/products/8f000001-0000-4000-8000-000000000015.jpg"
+  },
+  {
+    "id": "8f000001-0000-4000-8000-000000000014",
+    "name": "Tan Strappy Vegan Leather Flat Sandals",
+    "category": "Footwear",
+    "color": "Tan",
+    "gender": "Women",
+    "material": "Synthetic Leather",
+    "description": "Comfortable cushioned tan vegan leather flat sandals with crossover strappy silhouette.",
+    "current_image": "/images/products/8f000001-0000-4000-8000-000000000014.jpg"
+  },
+  {
+    "id": "4aac00fc-f681-4982-a544-0b8b173be7b4",
+    "name": "Sports Formal Shoes",
+    "category": "Footwear",
+    "color": "Maroon",
+    "gender": "unisex",
+    "material": "Linen",
+    "description": "Sports Formal Shoes in maroon, linen blend, formal shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "21f4f665-ecaf-405c-986a-c8624c0cbdff",
+    "name": "Formal Sneakers",
+    "category": "Footwear",
+    "color": "Pink",
+    "gender": "men",
+    "material": "Georgette",
+    "description": "Formal Sneakers in pink, georgette blend, sneakers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "52fd2523-ca4c-4993-8d0d-be6864490fa6",
+    "name": "Flat Sneakers",
+    "category": "Footwear",
+    "color": "Charcoal",
+    "gender": "unisex",
+    "material": "Polyester",
+    "description": "Flat Sneakers in charcoal, polyester blend, sneakers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "477cf84c-4c02-4cd8-a2a0-cfb2db68d52a",
+    "name": "Wedge Sports Shoes",
+    "category": "Footwear",
+    "color": "Peach",
+    "gender": "unisex",
+    "material": "Denim",
+    "description": "Wedge Sports Shoes in peach, denim blend, sports shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "e5333646-2f3a-4ad3-8835-bc07e0810e2a",
+    "name": "Formal Sandals",
+    "category": "Footwear",
+    "color": "Sky Blue",
+    "gender": "unisex",
+    "material": "Blended",
+    "description": "Formal Sandals in sky blue, blended blend, sandals style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "f57c4c21-7ab8-4923-ac27-b6baff391ff5",
+    "name": "Flat Sports Shoes",
+    "category": "Footwear",
+    "color": "Maroon",
+    "gender": "unisex",
+    "material": "Linen",
+    "description": "Flat Sports Shoes in maroon, linen blend, sports shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "a122ad83-57aa-4e1f-8d34-2e3e9979ce95",
+    "name": "Formal Formal Shoes",
+    "category": "Footwear",
+    "color": "Mint Green",
+    "gender": "women",
+    "material": "Chiffon",
+    "description": "Formal Formal Shoes in mint green, chiffon blend, formal shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "3945bc1e-bc51-4323-ae41-5f162cf87e67",
+    "name": "Sports Flip-Flops",
+    "category": "Footwear",
+    "color": "Brown",
+    "gender": "unisex",
+    "material": "Georgette",
+    "description": "Sports Flip-Flops in brown, georgette blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "33488699-9154-4c37-aa58-158387c07b46",
+    "name": "Flat Sneakers",
+    "category": "Footwear",
+    "color": "Emerald Green",
+    "gender": "women",
+    "material": "Blended",
+    "description": "Flat Sneakers in emerald green, blended blend, sneakers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "07ff879c-1624-4da7-9dbc-5ed91621f977",
+    "name": "Sports Ankle Boots",
+    "category": "Footwear",
+    "color": "Peach",
+    "gender": "women",
+    "material": "Blended",
+    "description": "Sports Ankle Boots in peach, blended blend, ankle boots style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "181756cb-39cf-4238-954f-898618dfa415",
+    "name": "Casual Formal Shoes",
+    "category": "Footwear",
+    "color": "Charcoal",
+    "gender": "men",
+    "material": "Chiffon",
+    "description": "Casual Formal Shoes in charcoal, chiffon blend, formal shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "1995120c-68e1-4809-92f1-7e660b422de0",
+    "name": "Flat Flip-Flops",
+    "category": "Footwear",
+    "color": "Grey",
+    "gender": "men",
+    "material": "Cotton",
+    "description": "Flat Flip-Flops in grey, cotton blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "03ac22a2-1dc8-4406-a18e-f29b9486054c",
+    "name": "Sports Formal Shoes",
+    "category": "Footwear",
+    "color": "Navy Blue",
+    "gender": "unisex",
+    "material": "Blended",
+    "description": "Sports Formal Shoes in navy blue, blended blend, formal shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "6b5e91d3-41c6-4934-b996-d0365e5a051d",
+    "name": "Wedge Ankle Boots",
+    "category": "Footwear",
+    "color": "Sky Blue",
+    "gender": "unisex",
+    "material": "Polyester",
+    "description": "Wedge Ankle Boots in sky blue, polyester blend, ankle boots style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "f9e77ca6-bcfe-4075-bc55-da08e302c0f1",
+    "name": "Flat Loafers",
+    "category": "Footwear",
+    "color": "Mustard",
+    "gender": "women",
+    "material": "Cotton",
+    "description": "Flat Loafers in mustard, cotton blend, loafers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "4daaedc4-fb3c-4455-93bd-7e3c2e6e976b",
+    "name": "Running Loafers",
+    "category": "Footwear",
+    "color": "Peach",
+    "gender": "men",
+    "material": "Polyester",
+    "description": "Running Loafers in peach, polyester blend, loafers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "af642151-206c-4e90-aeb8-d496ca7ceab2",
+    "name": "Running Sandals",
+    "category": "Footwear",
+    "color": "Wine",
+    "gender": "women",
+    "material": "Rayon",
+    "description": "Running Sandals in wine, rayon blend, sandals style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "2e510445-c4c7-4ccc-af80-33ea09d8a31c",
+    "name": "Running Formal Shoes",
+    "category": "Footwear",
+    "color": "Teal",
+    "gender": "unisex",
+    "material": "Blended",
+    "description": "Running Formal Shoes in teal, blended blend, formal shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "d6695486-9fe1-4579-a9a1-eeff7a7b4141",
+    "name": "Sports Flip-Flops",
+    "category": "Footwear",
+    "color": "Emerald Green",
+    "gender": "unisex",
+    "material": "Viscose",
+    "description": "Sports Flip-Flops in emerald green, viscose blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "9ec1dfec-6b30-4d07-a516-8c54ea6362b1",
+    "name": "Sports Sandals",
+    "category": "Footwear",
+    "color": "Beige",
+    "gender": "men",
+    "material": "Chiffon",
+    "description": "Sports Sandals in beige, chiffon blend, sandals style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "8d6223b9-cf65-4787-aa49-4eb6d685fe6f",
+    "name": "Running Sneakers",
+    "category": "Footwear",
+    "color": "Lavender",
+    "gender": "women",
+    "material": "Cotton",
+    "description": "Running Sneakers in lavender, cotton blend, sneakers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "6271b7be-977d-42fa-bda9-3ab54d556b74",
+    "name": "Formal Loafers",
+    "category": "Footwear",
+    "color": "Navy Blue",
+    "gender": "unisex",
+    "material": "Denim",
+    "description": "Formal Loafers in navy blue, denim blend, loafers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "5a1f814e-f9f1-4f53-ad61-cc9d2e401e03",
+    "name": "Sports Sneakers",
+    "category": "Footwear",
+    "color": "Off White",
+    "gender": "men",
+    "material": "Viscose",
+    "description": "Sports Sneakers in off white, viscose blend, sneakers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "e4ee212a-183b-4684-92b9-819aed596982",
+    "name": "Flat Formal Shoes",
+    "category": "Footwear",
+    "color": "Royal Blue",
+    "gender": "women",
+    "material": "Polyester",
+    "description": "Flat Formal Shoes in royal blue, polyester blend, formal shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "3d7405e7-97aa-4559-9ec9-f5fe32d92f48",
+    "name": "Running Flip-Flops",
+    "category": "Footwear",
+    "color": "Pink",
+    "gender": "unisex",
+    "material": "Denim",
+    "description": "Running Flip-Flops in pink, denim blend, flip-flops style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "10d54c5f-3e6e-4f87-9fab-f18cac66efe6",
+    "name": "Casual Sports Shoes",
+    "category": "Footwear",
+    "color": "Grey",
+    "gender": "women",
+    "material": "Polyester",
+    "description": "Casual Sports Shoes in grey, polyester blend, sports shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "066c0eb4-fbea-4ec5-8804-67076790386d",
+    "name": "Wedge Sneakers",
+    "category": "Footwear",
+    "color": "Mustard",
+    "gender": "men",
+    "material": "Chiffon",
+    "description": "Wedge Sneakers in mustard, chiffon blend, sneakers style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  },
+  {
+    "id": "054b2934-4287-4d3f-b714-1bf7f47e7590",
+    "name": "Ankle Sports Shoes",
+    "category": "Footwear",
+    "color": "Wine",
+    "gender": "women",
+    "material": "Rayon",
+    "description": "Ankle Sports Shoes in wine, rayon blend, sports shoes style.",
+    "current_image": "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=600&auto=format&fit=crop&q=80"
+  }
+]
