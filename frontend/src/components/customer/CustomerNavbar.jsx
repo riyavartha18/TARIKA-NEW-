@@ -81,6 +81,7 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
   const navLinks = [
     { label: 'Customer Home', path: '/customer', icon: null },
     { label: 'Shop / Categories', path: '/customer/shop', icon: <Compass size={14} /> },
+    { label: 'Smart Budget Stylist', path: '/customer/stylist', icon: <Sparkles size={14} />, isNew: true },
     { label: 'New In', path: '/customer/new-in', icon: <Sparkles size={14} /> },
     { label: 'Trending', path: '/customer/trending', icon: <Flame size={14} /> },
     { label: 'Sale', path: '/customer/sale', icon: <Tag size={14} /> },
@@ -95,6 +96,10 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
         <div className="customer-marquee-track">
           {[1, 2, 3].map((loop) => (
             <React.Fragment key={loop}>
+              <span className="customer-marquee-item">
+                <Sparkles size={13} /> SMART BUDGET STYLIST
+              </span>
+              <span className="customer-marquee-separator">•</span>
               <span className="customer-marquee-item">
                 <Sparkles size={13} /> TRENDING TOPS
               </span>
@@ -190,7 +195,7 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '1.5rem',
+              gap: '1.25rem',
             }}
             className="customer-nav-desktop"
           >
@@ -213,10 +218,28 @@ export default function CustomerNavbar({ onSearchChange, searchTerm = '' }) {
                 >
                   {tab.icon}
                   <span>{tab.label}</span>
+                  {tab.isNew && (
+                    <span
+                      style={{
+                        fontSize: '0.58rem',
+                        backgroundColor: '#FDECEF',
+                        color: '#B8505E',
+                        border: '1px solid rgba(216, 114, 126, 0.35)',
+                        padding: '0.1rem 0.35rem',
+                        borderRadius: '9999px',
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        lineHeight: 1,
+                      }}
+                    >
+                      NEW
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </div>
+
 
           {/* Search Input Bar */}
           <form

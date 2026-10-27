@@ -279,3 +279,69 @@ class RecommendationAPITests(SimpleTestCase):
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
             self.assertIn('detail', response.data)
             self.assertIn('not found', response.data['detail'].lower())
+
+
+class SmartBudgetStylistApiTests(SimpleTestCase):
+    """
+    Tests for SmartBudgetStylistView (GET & POST /api/recommendations/stylist/).
+    """
+
+    def setUp(self):
+        self.factory = APIRequestFactory()
+        from recommendations.views import SmartBudgetStylistView
+        self.view = SmartBudgetStylistView.as_view()
+
+    @patch('catalog.models.Product.objects.filter')
+    def test_stylist_endpoint_success(self, mock_filter):
+        # Mock active products
+        mock_prod1 = MagicMock()
+        mock_prod1.product_id = 'p_top1'
+        mock_prod1.product_name = 'Casual Linen Shirt'
+        mock_prod1.category.category_id = 'cat-1'
+        mock_prod1.category.category_name = 'Tops'
+        mock_prod1.selling_price = 799
+        mock_prod1.base_price = 999
+        mock_prod1.color = 'White'
+        mock_prod1.gender = 'Women'
+        mock_prod1.material = 'Linen'
+
+        mock_prod2 = MagicMock()
+        mock_prod2.product_id = 'p_bottom1'
+        mock_prod2.product_name = 'Slim Fit Blue Jeans'
+        mock_prod2.category.category_id = 'cat-2'
+        mock_prod2.category.category_name = 'Jeans'
+        mock_prod2.selling_price = 1199
+        mock_prod2.base_price = 1499
+        mock_prod2.color = 'Navy Blue'
+        mock_prod2.gender = 'Women'
+        mock_prod2.material = 'Denim'
+
+        mock_prod3 = MagicMock()
+        mock_prod3.product_id = 'p_shoes1'
+        mock_prod3.product_name = 'Classic Canvas Sneakers'
+        mock_prod3.category.category_id = 'cat-3'
+        mock_prod3.category.category_name = 'Footwear'
+        mock_prod3.selling_price = 499
+        mock_prod3.base_price = 699
+        mock_prod3.color = 'White'
+        mock_prod3.gender = 'Women'
+        mock_prod3.material = 'Canvas'
+
+        mock_filter.return_value.select_related.return_value = [mock_prod1, mock_prod2, mock_prod3]
+
+        request = self.factory.get('/api/recommendations/stylist/?budget=3000&occasion=College&fashion_direction=Western')
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data['success'])
+        self.assertEqual(response.data['budget'], 3000.0)
+        self.assertIn('outfits', response.data)
+        self.assertIn('available_options', response.data)
+        if response.data['outfits']:
+            outfit = response.data['outfits'][0]
+            self.assertIn('name', outfit)
+            self.assertIn('total_price', outfit)
+            self.assertIn('remaining_budget', outfit)
+            self.assertLessEqual(outfit['total_price'], 3000)
+            self.assertGreaterEqual(outfit['remaining_budget'], 0)
+

@@ -4,10 +4,12 @@ import { AuthProvider, useAuth, ROLE_ROUTES } from './auth/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import SmartBudgetStylistPage from './pages/customer/SmartBudgetStylistPage';
 import CustomerPortal from './pages/customer/CustomerPortal';
 import AdminPortal from './pages/admin/AdminPortal';
 import WarehousePortal from './pages/warehouse/WarehousePortal';
 import DeliveryPortal from './pages/delivery/DeliveryPortal';
+
 
 function ProtectedRoute({ children, allowedRole }) {
   const { isAuthenticated, role } = useAuth();
@@ -40,6 +42,11 @@ function AppRoutes() {
     <Routes>
       {/* TARIKA Customer-Facing Homepage */}
       <Route path="/" element={<Home />} />
+
+      {/* Smart Budget Stylist Feature */}
+      <Route path="/stylist" element={<SmartBudgetStylistPage insideCustomerPortal={false} />} />
+      <Route path="/smart-budget-stylist" element={<Navigate to="/stylist" replace />} />
+
 
       {/* Authentication Routes (Part 1 intact) */}
       <Route
